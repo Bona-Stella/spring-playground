@@ -36,7 +36,7 @@ Method Call
 - 내부 호출(self-invocation) 문제 재현
 
 ## 📦 AOP용 예시 템플릿
-```
+```java
 @Around("@annotation(LogExecutionTime)")
 public Object measure(ProceedingJoinPoint joinPoint) throws Throwable {
     long start = System.currentTimeMillis();
@@ -46,3 +46,4 @@ public Object measure(ProceedingJoinPoint joinPoint) throws Throwable {
     return result;
 ###}
 ```
+
