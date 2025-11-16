@@ -42,6 +42,7 @@ Access Token 만료
 
 ### ✔ JWT 설계
 - Access / Refresh Token 전략
+- Type 검증 로직 구현
 - 만료 시간 / 보안 옵션 설계
 
 ### ✔ 인가 처리
@@ -57,7 +58,7 @@ Access Token 만료
 - Redis
 - HttpOnly Cookie
 
-📦 JWT Payload 예시
+## 📦 JWT Payload 예시
 ```json
 {
   "sub": "userId",
@@ -71,4 +72,3 @@ Access Token 만료
 ## 📦 공통 Response, Error 템플릿
 - API Success Response Specification.md 참고
 - Error Response Specification.md 참고
-
