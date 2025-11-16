@@ -70,3 +70,6 @@ if (Boolean.TRUE.equals(locked)) {
     }
 }
 ```
+## 📦 공통 Response, Error 템플릿
+- API Success Response Specification.md 참고
+- Error Response Specification.md 참고
