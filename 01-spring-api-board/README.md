@@ -5,6 +5,7 @@
 
 ## 🧱 아키텍처 흐름
 ### 요청 처리 플로우 (MVC 구조)
+```
 Client
   → Controller
       → Validation
@@ -13,73 +14,57 @@ Client
            → Domain Logic
       → DTO 변환
   → Response Wrapper(ApiResponse)
-
+```
 ### 예외 처리 흐름
+```
 Controller / Service
    → 예외 발생
    → @RestControllerAdvice
         → Custom Exception 변환
         → ApiErrorResponse 생성
         → 반환
-
+```
 ### 업로드 흐름
+```
 Multipart Request
   → FileController
        → FileService
             → Local/S3 저장
             → 파일 메타데이터 DB 저장(optional)
   → 다운로드 URL 반환
-
+```
+```
 ### 문서화(Swagger/OpenAPI)
 SwaggerConfig
   → SpringDoc OpenAPI 자동 스캔
       → Controller / DTO 문서 생성
       → Swagger UI 제공
-
+```
 ## 🔍 실습 주제 목록
 ### 📌 API 서버 기본기
-
-Controller/Service/Repository 구조화
-
-DTO / Entity 분리 전략
-
-Layered Architecture 적용
-
+- Controller/Service/Repository 구조화
+- DTO / Entity 분리 전략
+- Layered Architecture 적용
 ### 📌 유효성 검증
-
-@Valid + Bean Validation
-
-커스텀 Validator
-
+- @Valid + Bean Validation
+- 커스텀 Validator
 ### 📌 예외 처리
-
-글로벌 예외 처리기
-
-ErrorCode Enum 설계
-
+- 글로벌 예외 처리기
+- ErrorCode Enum 설계
 ### 📌 Querydsl
-
-조건부 동적 검색
-
-페이징 처리
-
-정렬 및 복합 검색
-
+- 조건부 동적 검색
+- 페이징 처리
+- 정렬 및 복합 검색
 ### 📌 파일 업로드/다운로드
-
-MultipartFile 처리
-
-Local File / AWS S3 저장 구조 확장 가능
-
+- MultipartFile 처리
+- Local File / AWS S3 저장 구조 확장 가능
 ### 📌 Swagger 문서화
-
-OpenAPI 문서 생성
-
-Grouping
-
-Example 값 설정
+- OpenAPI 문서 생성
+- Grouping
+- Example 값 설정
 
 ## 📦 공통 Response 템플릿
+```
 public record ApiResponse<T>(
         int status,
         String message,
@@ -89,11 +74,13 @@ public record ApiResponse<T>(
         return new ApiResponse<>(200, "OK", data);
     }
 }
-
+```
 ## ❗ 예외 Response 템플릿
+```
 {
   "status": 400,
   "errorCode": "INVALID_INPUT",
   "message": "Title must not be empty",
   "timestamp": "2025-01-01T10:20:00"
 }
+```
