@@ -49,14 +49,14 @@ Validation, Exception Handling, Logging, Scheduler 등 백엔드 서비스 운�
 
 🛠 기술 스택 (Tech Stack)
 언어 & 런타임
-- Java 21+ ![Java](https://img.shields.io/badge/Java-21+-orange)
+- Java 21+
 - Gradle-Kotlin
 
 Spring Framework / Boot
-- Spring Boot (Auto Configuration 분석 포함) ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-brightgreen)
+- Spring Boot (Auto Configuration 분석 포함)
 - Spring MVC
 - Spring AOP
-- Spring Security ![Spring Security](https://img.shields.io/badge/Security-Enabled-blue)
+- Spring Security
 - Spring Validation
 - Spring Cache (with Redis)
 
@@ -68,13 +68,13 @@ Spring Framework / Boot
 
 데이터 접근
 - JPA / Hibernate
-- Querydsl ![Querydsl](https://img.shields.io/badge/Querydsl-Dynamic%20Query-lightgrey)
-- Spring Data JPA ![JPA](https://img.shields.io/badge/JPA-Hibernate-yellow)
+- Querydsl
+- Spring Data JPA
 - JDBC Template (필요 시)
 
 데이터베이스 & 인프라
 - PostgreSQL (RDBMS)
-- Redis (캐싱, 세션, 분산 락, 메시지 큐 실험 가능) ![Redis](https://img.shields.io/badge/Redis-Cache-red)
+- Redis (캐싱, 세션, 분산 락, 메시지 큐 실험 가능)
 - Testcontainers (DB/Redis 통합 테스트)
 
 문서화 & API 도구
