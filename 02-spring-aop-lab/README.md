@@ -47,4 +47,6 @@ public Object measure(ProceedingJoinPoint joinPoint) throws Throwable {
 }
 ```
 
-
+## 📦 공통 Response, Error 템플릿
+- API Success Response Specification.md 참고
+- Error Response Specification.md 참고
