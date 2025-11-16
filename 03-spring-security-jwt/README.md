@@ -62,16 +62,13 @@ Access Token 만료
 {
   "sub": "userId",
   "roles": ["USER"],
+  "type": "ACCESS",
   "iat": 1710000000,
   "exp": 1710003600
 }
 ```
 
-📦 인증 실패 Response 템플릿
-```json
-{
-  "status": 401,
-  "errorCode": "INVALID_TOKEN",
-  "message": "Token is expired or invalid."
-}
-```
+## 📦 공통 Response, Error 템플릿
+- API Success Response Specification.md 참고
+- Error Response Specification.md 참고
+
