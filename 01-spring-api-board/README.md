@@ -1,7 +1,12 @@
-# 📌 01 — spring-api-board (기본 API 서버 + 게시판 + Querydsl + Swagger + 파일 업로드)
+# 📌 01 — spring-api-board
 
 ## 🚀 개요
 기본적인 Spring MVC 기반 API 서버의 표준 구조를 정립하고, 실제 서비스에서 흔히 쓰이는 CRUD / 검색 / 파일 업로드 / 문서화를 실습하는 프로젝트입니다.
++ 기본 API 서버
++ 게시판
++ Querydsl
++ Swagger
++ 파일 업로드
 
 ## 🧱 아키텍처 흐름
 ### 요청 처리 플로우 (MVC 구조)
@@ -84,3 +89,4 @@ public record ApiResponse<T>(
   "timestamp": "2025-01-01T10:20:00"
 }
 ```
+
