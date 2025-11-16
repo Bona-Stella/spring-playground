@@ -68,26 +68,6 @@ SwaggerConfig
 - Grouping
 - Example 값 설정
 
-## 📦 공통 Response 템플릿
-```java
-public record ApiResponse<T>(
-        int status,
-        String message,
-        T data
-) {
-    public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(200, "OK", data);
-    }
-}
-```
-## ❗ 예외 Response 템플릿
-```json
-{
-  "status": 400,
-  "errorCode": "INVALID_INPUT",
-  "message": "Title must not be empty",
-  "timestamp": "2025-01-01T10:20:00"
-}
-```
-
-
+## 📦 공통 Response, Error 템플릿
+- API Success Response Specification.md 참고
+- Error Response Specification.md 참고
