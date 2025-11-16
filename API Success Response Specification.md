@@ -78,7 +78,7 @@ public record ApiResponse<T>(
 ```
 
 ## 🔗 Controller에서 사용하는 예시
-```
+```java
 ✔ 조회 성공
 @GetMapping("/{id}")
 public ResponseEntity<ApiResponse<PostDto>> getPost(
