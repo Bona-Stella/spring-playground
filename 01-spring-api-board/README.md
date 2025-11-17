@@ -38,8 +38,8 @@ Multipart Request
             → 파일 메타데이터 DB 저장(optional)
   → 다운로드 URL 반환
 ```
-```
 ### 문서화(Swagger/OpenAPI)
+```
 SwaggerConfig
   → SpringDoc OpenAPI 자동 스캔
       → Controller / DTO 문서 생성
@@ -71,3 +71,4 @@ SwaggerConfig
 ## 📦 공통 Response, Error 템플릿
 - API Success Response Specification.md 참고
 - Error Response Specification.md 참고
+
