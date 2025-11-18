@@ -98,6 +98,11 @@ MQ
 - 캐시 리빌드
 - 만료 데이터 정리
 - 주기적 배치
+### ✔ 내부/외부 동기·비동기 + MQ
+- 내부 동기 처리 흐름 (캐시 → DB → 캐시 업데이트)
+- 내부 비동기 처리 (MQ 발행 → Consumer 후처리)
+- 외부 API 동기 호출 및 캐싱
+- 외부 이벤트 비동기 처리 (MQ 기반 후속 로직)
 
 ## 📦 Redis 연동 예시 (Lock)
 ```java
@@ -116,5 +121,6 @@ if (Boolean.TRUE.equals(locked)) {
 ## 📦 공통 Response, Error 템플릿
 - API Success Response Specification.md 참고
 - Error Response Specification.md 참고
+
 
 
