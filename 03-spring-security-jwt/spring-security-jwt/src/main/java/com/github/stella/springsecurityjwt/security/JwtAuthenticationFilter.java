@@ -5,6 +5,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Cookie;
 import com.github.stella.springsecurityjwt.security.blacklist.BlacklistedAccessTokenRepository;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -35,7 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String bearer = request.getHeader(HttpHeaders.AUTHORIZATION);
-        String token = resolveToken(bearer);
+        String token = resolveToken(request, bearer);
 
         if (token != null) {
             try {
@@ -66,10 +67,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private String resolveToken(String bearer) {
-        if (bearer == null || bearer.isBlank()) return null;
-        if (bearer.startsWith("Bearer ")) {
+    private String resolveToken(HttpServletRequest request, String bearer) {
+        if (bearer != null && !bearer.isBlank() && bearer.startsWith("Bearer ")) {
             return bearer.substring(7);
+        }
+        // Fallback to HttpOnly cookie for SPA flows
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie c : cookies) {
+                if ("ACCESS_TOKEN".equals(c.getName())) {
+                    return c.getValue();
+                }
+            }
         }
         return null;
     }
