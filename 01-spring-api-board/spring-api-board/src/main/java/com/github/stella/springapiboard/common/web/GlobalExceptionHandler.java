@@ -15,6 +15,13 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+/*    private boolean isSwaggerPath(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.startsWith("/v3/api-docs") ||
+               path.startsWith("/swagger-ui") ||
+               path.equals("/swagger-ui.html");
+    }*/
+
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ErrorResponse> handleCustomException(CustomException e, HttpServletRequest request) {
         var errorCode = e.getErrorCode();
@@ -36,6 +43,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception e, HttpServletRequest request) {
+        // Swagger 관련 경로는 처리하지 않음 (Springdoc이 자체 처리하도록)
+        /*if (isSwaggerPath(request)) {
+            throw new RuntimeException(e);
+        }*/
+
         var code = ErrorCode.INTERNAL_SERVER_ERROR;
         return ResponseEntity.status(code.status())
                 .body(ErrorResponse.of(code, request.getRequestURI()));
