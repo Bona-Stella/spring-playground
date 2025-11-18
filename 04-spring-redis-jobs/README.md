@@ -1,11 +1,11 @@
-#📌 04 — spring-redis-jobs
+# 📌 04 — spring-redis-jobs
 ## 🚀 개요
 Redis를 이용한 캐싱/세션/분산 락/실시간 메시징과
 Spring Scheduler 기반의 백그라운드 작업 등을 결합해
 실서비스 운영 레벨 기능을 실험하는 프로젝트입니다.
 
 ## 🧱 Redis 활용 구조
-###🔹 캐싱 Flow
+### 🔹 캐싱 Flow
 ```
 Controller
   → Service
@@ -73,3 +73,4 @@ if (Boolean.TRUE.equals(locked)) {
 ## 📦 공통 Response, Error 템플릿
 - API Success Response Specification.md 참고
 - Error Response Specification.md 참고
+
