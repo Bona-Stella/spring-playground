@@ -29,6 +29,12 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
+    // Querydsl (Jakarta)
+    implementation("com.querydsl:querydsl-jpa:5.1.0:jakarta")
+    annotationProcessor("com.querydsl:querydsl-apt:5.1.0:jakarta")
+    // Required for annotation processing on JDK 21
+    annotationProcessor("jakarta.persistence:jakarta.persistence-api:3.1.0")
+    annotationProcessor("jakarta.annotation:jakarta.annotation-api:2.1.1")
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")

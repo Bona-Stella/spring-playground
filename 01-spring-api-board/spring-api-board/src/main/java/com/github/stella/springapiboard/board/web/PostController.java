@@ -3,6 +3,7 @@ package com.github.stella.springapiboard.board.web;
 import com.github.stella.springapiboard.board.dto.CreatePostRequest;
 import com.github.stella.springapiboard.board.dto.PostDto;
 import com.github.stella.springapiboard.board.dto.UpdatePostRequest;
+import com.github.stella.springapiboard.board.dto.PostSearchDtos;
 import com.github.stella.springapiboard.board.service.PostService;
 import com.github.stella.springapiboard.common.api.ApiResponse;
 import com.github.stella.springapiboard.common.api.PageResponse;
@@ -35,6 +36,14 @@ public class PostController {
         Page<PostDto> page = postService.list(pageable);
         PageResponse<PostDto> body = PageResponse.from(page);
         return ResponseEntity.ok(ApiResponse.success(body, request.getRequestURI()));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<PageResponse<PostDto>>> search(PostSearchDtos.PostSearchCondition condition,
+                                                                     Pageable pageable,
+                                                                     HttpServletRequest request) {
+        Page<PostDto> page = postService.search(condition, pageable);
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.from(page), request.getRequestURI()));
     }
 
     @PostMapping
