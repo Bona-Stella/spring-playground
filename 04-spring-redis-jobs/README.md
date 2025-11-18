@@ -39,6 +39,49 @@ Scheduler
            → 작업 수행 (집계/캐시 갱신 등)
            → 락 해제
 ```
+
+## 동기 / 비동기 워크플로우 (내부 / 외부 · MQ 포함)
+### 🔹 내부 동기 Flow
+```
+Controller → Service
+    → (옵션) Redis 캐시 조회
+    → DB 조회 / 도메인 로직 수행
+    → (옵션) Redis 캐시 저장
+  → 응답 반환
+```
+### 🔹 내부 비동기 Flow (MQ)
+```
+Controller → Service
+    → 핵심 로직만 처리
+    → MQ Producer 로 비동기 이벤트 발행
+  → 응답 반환
+```
+### 🔹 MQ
+```
+→ Consumer
+  → (옵션) Redis 분산 락 획득
+    → 장기 실행 작업 / 후처리 수행
+    → DB / Redis 업데이트
+    → 락 해제
+```
+### 🔹 외부 동기 Flow
+```
+Service
+  → 외부 API 동기 호출
+    → 재시도/서킷브레이커 처리
+  → 응답 데이터 가공
+  → (옵션) Redis 캐시 저장
+```
+### 🔹 외부 비동기 Flow (Webhook·MQ는 제외)
+```
+외부 시스템 이벤트
+  → MQ Producer
+MQ
+  → Consumer
+    → (옵션) Redis 분산 락
+    → 내부 상태( DB / Redis ) 반영
+    → 락 해제
+```
 ## 🔍 실습 주제 목록
 ### ✔ 캐싱 패턴
 - @Cacheable, @CacheEvict
@@ -73,4 +116,5 @@ if (Boolean.TRUE.equals(locked)) {
 ## 📦 공통 Response, Error 템플릿
 - API Success Response Specification.md 참고
 - Error Response Specification.md 참고
+
 
