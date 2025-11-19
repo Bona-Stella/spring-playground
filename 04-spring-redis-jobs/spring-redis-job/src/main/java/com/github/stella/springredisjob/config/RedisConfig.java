@@ -84,6 +84,12 @@ public class RedisConfig {
         return new PatternTopic("ext:requests");
     }
 
+    // Topic for internal post events
+    @Bean
+    public PatternTopic postEventsTopic() {
+        return new PatternTopic("post:events");
+    }
+
     @Bean
     public MessageListenerAdapter messageListenerAdapter(com.github.stella.springredisjob.pubsub.NotifySubscriber subscriber) {
         // delegate method name 'handleMessage'
@@ -98,18 +104,29 @@ public class RedisConfig {
         return new MessageListenerAdapter(subscriber, "handleMessage");
     }
 
+    // Listener adapter for post events subscriber
+    @Bean
+    public MessageListenerAdapter postEventListenerAdapter(
+            com.github.stella.springredisjob.domain.post.PostEventSubscriber subscriber
+    ) {
+        return new MessageListenerAdapter(subscriber, "handleMessage");
+    }
+
     @Bean
     public RedisMessageListenerContainer redisMessageListenerContainer(
             RedisConnectionFactory factory,
             MessageListenerAdapter messageListenerAdapter,
             PatternTopic notifyTopic,
             MessageListenerAdapter externalRequestListenerAdapter,
-            PatternTopic externalRequestTopic
+            PatternTopic externalRequestTopic,
+            MessageListenerAdapter postEventListenerAdapter,
+            PatternTopic postEventsTopic
     ) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(factory);
         container.addMessageListener(messageListenerAdapter, notifyTopic);
         container.addMessageListener(externalRequestListenerAdapter, externalRequestTopic);
+        container.addMessageListener(postEventListenerAdapter, postEventsTopic);
         return container;
     }
 }
