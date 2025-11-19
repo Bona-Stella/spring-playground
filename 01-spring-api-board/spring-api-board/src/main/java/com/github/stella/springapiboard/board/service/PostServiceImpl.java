@@ -104,5 +104,4 @@ public class PostServiceImpl implements PostService {
     public Page<PostDto> search(PostSearchDtos.PostSearchCondition condition, Pageable pageable) {
         return postQueryRepository.search(condition, pageable).map(PostDto::from);
     }
-
 }

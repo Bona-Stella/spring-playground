@@ -35,6 +35,7 @@ public class PostController {
     public ResponseEntity<ApiResponse<PostDto>> get(
             @Parameter(description = "게시글 ID", example = "1", required = true)
             @PathVariable Long id,
+            // hidden = true -> Swagger에 노출 안함
             @Parameter(hidden = true) HttpServletRequest request) {
         PostDto dto = postService.get(id);
         return ResponseEntity.ok(ApiResponse.success(dto, request.getRequestURI()));

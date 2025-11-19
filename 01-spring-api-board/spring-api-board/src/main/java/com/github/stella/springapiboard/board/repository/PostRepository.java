@@ -10,6 +10,7 @@ import java.util.Optional;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
 
+    // find ~ ById -> 사이에 아무거나 적어도 Jpa에서는 대부분 무시함
     @EntityGraph(attributePaths = {"category", "tags"})
     Optional<Post> findWithRelationsById(Long id);
 
