@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class ExternalService {
@@ -66,6 +67,19 @@ public class ExternalService {
             log.info("[External][ASYNC] fetched city={} temp={} desc={} at {}", res.city(), res.temperatureC(), res.description(), res.fetchedAt());
         } catch (Exception e) {
             log.warn("[External][ASYNC] failed for city={}: {}", city, e.getMessage());
+        }
+    }
+
+    // CompletableFuture 기반 비동기 호출 (논블로킹 응답용)
+    @Async
+    public CompletableFuture<ExternalWeatherResponse> fetchAsyncFuture(String city) {
+        try {
+            ExternalWeatherResponse res = getWeatherCached(city);
+            return CompletableFuture.completedFuture(res);
+        } catch (Exception e) {
+            CompletableFuture<ExternalWeatherResponse> cf = new CompletableFuture<>();
+            cf.completeExceptionally(e);
+            return cf;
         }
     }
 }
