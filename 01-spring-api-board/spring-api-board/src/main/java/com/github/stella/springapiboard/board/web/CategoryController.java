@@ -38,6 +38,7 @@ public class CategoryController {
     public ResponseEntity<ApiResponse<CategoryDtos.CategoryDto>> create(@Valid @RequestBody CategoryDtos.CreateCategoryRequest req,
                                                                         HttpServletRequest request) {
         var created = categoryService.create(req);
+        // ResponseEntity.created -> Body(X)
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created(created, request.getRequestURI()));
     }

@@ -2,10 +2,13 @@ package com.github.stella.springapiboard.board.domain;
 
 import com.github.stella.springapiboard.common.jpa.BaseTimeEntity;
 import jakarta.persistence.*;
+import lombok.Getter;
+
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
+@Getter
 @Table(name = "posts")
 public class Post extends BaseTimeEntity {
 
@@ -35,6 +38,8 @@ public class Post extends BaseTimeEntity {
             joinColumns = @JoinColumn(name = "post_id"),
             inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
+    // tags가 this.tags = 다른객체로 교체하는 코드가 없다면 final 선언 경고(추천)가 뜰 수 있음
+    // 그러나 Jpa에서는 HashSet을 버리고 Proxy로 PersistentSet으로 갈아끼우므로 final 선언을 하면 안됨
     private Set<Tag> tags = new HashSet<>();
 
     protected Post() {}
@@ -44,13 +49,6 @@ public class Post extends BaseTimeEntity {
         this.content = content;
         this.author = author;
     }
-
-    public Long getId() { return id; }
-    public String getTitle() { return title; }
-    public String getContent() { return content; }
-    public String getAuthor() { return author; }
-    public Category getCategory() { return category; }
-    public Set<Tag> getTags() { return tags; }
 
     public void update(String title, String content) {
         if (title != null) this.title = title;

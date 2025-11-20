@@ -2,41 +2,44 @@ package com.github.stella.springapiboard.board.repository;
 
 import com.github.stella.springapiboard.board.dto.StatsDtos;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.Query;
+import jakarta.persistence.TypedQuery;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.context.annotation.Primary;
-
+/**
+ * StatsQueryRepository의 JPQL 기반 구현
+ * 결과는 네이티브/QueryDSL 구현과 동일하게 반환하도록 매핑한다.
+ */
 @Repository
-@Primary
-public class StatsQueryRepositoryImpl implements StatsQueryRepository {
+public class StatsQueryRepositoryJpqlImpl implements StatsQueryRepository {
 
     private final EntityManager em;
 
-    public StatsQueryRepositoryImpl(EntityManager em) {
+    public StatsQueryRepositoryJpqlImpl(EntityManager em) {
         this.em = em;
     }
 
     @Override
     public List<StatsDtos.DailyCount> findDailyPosts(int days) {
-        String sql = """
-                select cast(p.created_at as date) as d, count(*) as c
-                from posts p
-                where p.created_at >= current_date - make_interval(days => :days)
-                group by d
-                order by d asc
+        LocalDateTime start = LocalDate.now().minusDays(days).atStartOfDay();
+        String jpql = """
+                select function('date', p.createdAt) as d, count(p.id) as c
+                from Post p
+                where p.createdAt >= :start
+                group by function('date', p.createdAt)
+                order by function('date', p.createdAt) asc
                 """;
-        Query q = em.createNativeQuery(sql);
-        q.setParameter("days", days);
-        @SuppressWarnings("unckecked")
+        @SuppressWarnings("unchecked")
+        TypedQuery<Object[]> q = (TypedQuery<Object[]>) (TypedQuery<?>) em.createQuery(jpql);
+        q.setParameter("start", start);
         List<Object[]> rows = q.getResultList();
         List<StatsDtos.DailyCount> result = new ArrayList<>();
         for (Object[] r : rows) {
-            LocalDate day = ((java.sql.Date) r[0]).toLocalDate();
+            LocalDate day = (r[0] instanceof java.sql.Date sd) ? sd.toLocalDate() : (LocalDate) r[0];
             long count = ((Number) r[1]).longValue();
             result.add(new StatsDtos.DailyCount(day, count));
         }
@@ -45,17 +48,16 @@ public class StatsQueryRepositoryImpl implements StatsQueryRepository {
 
     @Override
     public List<StatsDtos.TopItem> findTopCategories(int limit) {
-        String sql = """
-                select c.id, c.name, count(p.id) as cnt
-                from categories c
-                left join posts p on p.category_id = c.id
+        String jpql = """
+                select c.id, c.name, count(p.id)
+                from Category c
+                left join Post p on p.category = c
                 group by c.id, c.name
-                order by cnt desc
-                limit :limit
+                order by count(p.id) desc
                 """;
-        Query q = em.createNativeQuery(sql);
-        q.setParameter("limit", limit);
         @SuppressWarnings("unchecked")
+        TypedQuery<Object[]> q = (TypedQuery<Object[]>) (TypedQuery<?>) em.createQuery(jpql);
+        q.setMaxResults(Math.max(0, limit));
         List<Object[]> rows = q.getResultList();
         List<StatsDtos.TopItem> result = new ArrayList<>();
         for (Object[] r : rows) {
@@ -69,17 +71,19 @@ public class StatsQueryRepositoryImpl implements StatsQueryRepository {
 
     @Override
     public List<StatsDtos.TopItem> findTopTags(int limit) {
-        String sql = """
-                select t.id, t.name, count(pt.post_id) as cnt
-                from tags t
-                left join post_tags pt on pt.tag_id = t.id
-                group by t.id, t.name
-                order by cnt desc
-                limit :limit
+        // 태그별 포스트 수를 서브쿼리로 계산하여 0건 태그도 포함한다
+        String jpql = """
+                select t.id, t.name,
+                       (select count(p2.id) from Post p2 where t member of p2.tags) as cnt
+                from Tag t
+                order by (select count(p3.id) from Post p3 where t member of p3.tags) desc
                 """;
-        Query q = em.createNativeQuery(sql);
-        q.setParameter("limit", limit);
         @SuppressWarnings("unchecked")
+        TypedQuery<Object[]> q = (TypedQuery<Object[]>) (TypedQuery<?>) em.createQuery(
+                "select t.id, t.name, (select count(p2.id) from Post p2 where t member of p2.tags) as cnt " +
+                "from Tag t order by (select count(p3.id) from Post p3 where t member of p3.tags) desc"
+        );
+        q.setMaxResults(Math.max(0, limit));
         List<Object[]> rows = q.getResultList();
         List<StatsDtos.TopItem> result = new ArrayList<>();
         for (Object[] r : rows) {
@@ -93,16 +97,15 @@ public class StatsQueryRepositoryImpl implements StatsQueryRepository {
 
     @Override
     public List<StatsDtos.TopItem> findTopAuthors(int limit) {
-        String sql = """
-                select null as id, p.author as name, count(*) as cnt
-                from posts p
+        String jpql = """
+                select null, p.author, count(p.id)
+                from Post p
                 group by p.author
-                order by cnt desc
-                limit :limit
+                order by count(p.id) desc
                 """;
-        Query q = em.createNativeQuery(sql);
-        q.setParameter("limit", limit);
         @SuppressWarnings("unchecked")
+        TypedQuery<Object[]> q = (TypedQuery<Object[]>) (TypedQuery<?>) em.createQuery(jpql);
+        q.setMaxResults(Math.max(0, limit));
         List<Object[]> rows = q.getResultList();
         List<StatsDtos.TopItem> result = new ArrayList<>();
         for (Object[] r : rows) {

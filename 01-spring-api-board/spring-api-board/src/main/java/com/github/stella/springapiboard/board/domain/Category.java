@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "categories", indexes = {
+        // name = 인덱스 이름 설정, columeList = 인덱스 설정 컬럼
         @Index(name = "idx_category_slug", columnList = "slug", unique = true)
 })
 public class Category extends BaseTimeEntity {
@@ -22,6 +23,8 @@ public class Category extends BaseTimeEntity {
     @Column(length = 255)
     private String description;
 
+    // Jpa는 반드시 생성자를 public or protected로 선언해야 하며 가능하면 protected로 보호한다.
+    // Lombok -> @NoArgsConstructor(access = AccessLevel.PROTECTED) 도 같은 기능
     protected Category() {}
 
     public Category(String name, String slug, String description) {

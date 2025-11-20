@@ -58,8 +58,10 @@ public class FileService {
         String contentType = file.getContentType() == null ? "application/octet-stream" : file.getContentType();
         long size = file.getSize();
 
+        // resolve -> 위치정보를 생성
         Path target = uploadDir.resolve(savedName);
         try {
+            // transferTo -> target에 지정된 위치에 저장, toFile -> 호환성을 위해 Path->File 변환
             file.transferTo(target.toFile());
         } catch (IOException e) {
             throw new RuntimeException("Failed to save file", e);
