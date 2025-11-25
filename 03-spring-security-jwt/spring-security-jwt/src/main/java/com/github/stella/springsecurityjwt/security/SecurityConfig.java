@@ -35,15 +35,17 @@ public class SecurityConfig {
                 // CSRF 보호가 불필요하여 끕니다.
                 .csrf(csrf -> csrf.disable())
 
-                // 2. CORS(Cross-Origin Resource Sharing) 설정 [새로운 내용]
+                // 2. CORS(Cross-Origin Resource Sharing) 설정 
                 // React나 Vue 같은 프론트엔드(예: localhost:3000)가
                 // 백엔드(localhost:8080)로 요청을 보낼 때 차단되지 않도록 허용 규칙을 설정합니다.
                 // corsConfigurationSource()라는 메서드를 따로 만들어 규칙을 정의하고 여기서 불러옵니다.
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                // 3. 세션 관리 설정 (STATELESS) [새로운 내용]
+                // 3. 세션 관리 설정 (STATELESS) 
                 // "서버에 세션을 생성하지 않겠다"는 뜻입니다.
                 // JWT 같은 토큰 방식을 쓸 때는 서버가 유저 상태를 기억하지 않으므로 필수로 설정해야 합니다.
+                .formLogin((form) -> form.disable())
+                .httpBasic((basic) -> basic.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // 4. 인가(Authorization) 설정
@@ -59,13 +61,13 @@ public class SecurityConfig {
                         // 그 외 모든 요청은 인증(로그인/토큰)이 필요함
                         .anyRequest().authenticated()
                 )
-                // 5. 헤더 설정 (Frame Options) [새로운 내용]
+                // 5. 헤더 설정 (Frame Options) 
                 // H2 Console은 HTML의 <iframe> 태그를 사용하는데,
                 // 시큐리티는 기본적으로 보안을 위해 iframe을 막아둡니다.
                 // H2 Console을 정상적으로 보기 위해 이 옵션을 끕니다(disable).
                 .headers(h -> h.frameOptions(frame -> frame.disable()))
 
-                // 6. 커스텀 필터 추가 (순서 지정) [새로운 내용]
+                // 6. 커스텀 필터 추가 (순서 지정) 
                 // addFilterBefore(A, B): B 필터가 실행되기 '직전'에 A 필터를 먼저 실행하라는 뜻입니다.
 
                 // (1) RateLimitFilter 먼저 실행 (도배 방지 필터로 추정)
