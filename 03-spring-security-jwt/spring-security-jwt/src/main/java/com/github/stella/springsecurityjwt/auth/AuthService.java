@@ -59,6 +59,7 @@ public class AuthService {
     public TokenResponse login(LoginRequest req) {
         // 1. 인증 시도
         // JpaUserDetailsService 작동
+        // PasswordEncoder 작동
         Authentication auth = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(req.username(), req.password())
         );
