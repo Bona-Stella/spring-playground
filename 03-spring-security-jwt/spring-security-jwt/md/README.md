@@ -17,11 +17,11 @@ Request
 ### 🔹 로그인 흐름
 ```
 ID/PW 입력
- → AuthenticationManager
-      → UserDetailsService
-          → UserDetails 반환
- → PasswordEncoder matches()
- → 성공 시 JWT Access/Refresh Token 발급
+→ AuthenticationManager
+     → UserDetailsService
+         → UserDetails 반환
+→ PasswordEncoder(BCrypt) matches()
+→ 성공 시 JWT Access/Refresh Token 발급
 ```
 ### 🔹 토큰 재발급
 ```
@@ -72,3 +72,18 @@ Access Token 만료
 ## 📦 공통 Response, Error 템플릿
 - API Success Response Specification.md 참고
 - Error Response Specification.md 참고
+
+## 🔐 비밀번호 저장 정책(BCrypt)
+- 회원 비밀번호는 BCrypt로 해시되어 저장됩니다. 평문 비밀번호는 DB에 절대 저장하지 않습니다.
+- 인증 시에도 입력값은 해시 비교(`PasswordEncoder.matches`)로 검증합니다.
+- 구성
+  - PasswordEncoder: `BCryptPasswordEncoder(workFactor)`
+  - Work factor(라운드)는 설정으로 조절 가능합니다.
+    - `application.properties`
+      ```properties
+      # BCrypt work factor (높을수록 보안 ↑, 성능 ↓). 권장 10~14
+      app.security.password.bcrypt-strength=12
+      ```
+  - 기본값은 10이며, 운영 환경에서는 12 이상을 권장합니다. 서버 성능과 트래픽을 고려해 조정하세요.
+- 마이그레이션 팁
+  - 기존 평문/다른 해시 사용 프로젝트에서 넘어오는 경우, 최초 로그인/비밀번호 변경 시점에 재해시(BCrypt)하도록 처리하는 전략을 권장합니다.
