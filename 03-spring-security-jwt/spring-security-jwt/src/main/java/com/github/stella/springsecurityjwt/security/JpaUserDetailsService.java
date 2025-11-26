@@ -28,10 +28,6 @@ public class JpaUserDetailsService implements UserDetailsService {
                 .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toSet());
-        return org.springframework.security.core.userdetails.User
-                .withUsername(user.getUsername())
-                .password(user.getPassword())
-                .authorities(authorities)
-                .build();
+        return new CustomUserDetails(user.getId(), user.getUsername(), user.getPassword(), authorities);
     }
 }

@@ -53,11 +53,12 @@ public class AuthService {
         // 주의: 여기서 User는 org.springframework...User가 아니라 도메인 Entity User여야 함
         User user = new User(req.username(), passwordEncoder.encode(req.password()), Set.of("USER"));
         userRepository.save(user);
-        return issueTokens(user.getUsername(), List.copyOf(user.getRoles()));
+        return issueTokens(user.getId(), user.getUsername(), List.copyOf(user.getRoles()));
     }
 
     public TokenResponse login(LoginRequest req) {
         // 1. 인증 시도
+        // JpaUserDetailsService 작동
         Authentication auth = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(req.username(), req.password())
         );
@@ -67,12 +68,12 @@ public class AuthService {
         User user = userRepository.findByUsername(req.username())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        return issueTokens(user.getUsername(), List.copyOf(user.getRoles()));
+        return issueTokens(user.getId(), user.getUsername(), List.copyOf(user.getRoles()));
     }
 
-    private TokenResponse issueTokens(String username, List<String> roles) {
-        String access = jwtProvider.generateToken(username, roles, TokenType.ACCESS);
-        String refresh = jwtProvider.generateToken(username, roles, TokenType.REFRESH);
+    private TokenResponse issueTokens(Long userId, String username, List<String> roles) {
+        String access = jwtProvider.generateToken(userId, username, roles, TokenType.ACCESS);
+        String refresh = jwtProvider.generateToken(userId, username, roles, TokenType.REFRESH);
 
         // Refresh Token 저장
         redisTokenService.storeRefreshToken(username, refresh, props.getRefreshTokenValiditySeconds());
@@ -90,6 +91,7 @@ public class AuthService {
         }
 
         String username = claims.getSubject();
+        Long userId = jwtProvider.getUserId(claims);
 
         // 3. Redis에 저장된 토큰과 일치하는지 확인
         String stored = redisTokenService.getRefreshToken(username).orElse(null);
@@ -99,7 +101,7 @@ public class AuthService {
 
         // 4. 기존 정보로 새 토큰 발급 (Rotate)
         List<String> roles = jwtProvider.getRoles(claims);
-        return issueTokens(username, roles);
+        return issueTokens(userId, username, roles);
     }
 
     public void logout(String accessToken) {

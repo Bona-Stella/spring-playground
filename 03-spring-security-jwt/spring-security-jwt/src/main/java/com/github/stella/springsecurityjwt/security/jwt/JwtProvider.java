@@ -2,6 +2,7 @@ package com.github.stella.springsecurityjwt.security.jwt;
 
 import com.github.stella.springsecurityjwt.common.error.CustomException;
 import com.github.stella.springsecurityjwt.common.error.ErrorCode;
+import com.github.stella.springsecurityjwt.security.CustomUserDetails;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -14,7 +15,6 @@ import java.security.Key;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
@@ -24,6 +24,7 @@ public class JwtProvider {
 
     private static final String KEY_ROLES = "roles";
     private static final String KEY_TYPE = "type";
+    private static final String KEY_USER_ID = "userId";
 
     public JwtProvider(JwtProperties props) {
         this.props = props;
@@ -31,14 +32,15 @@ public class JwtProvider {
         this.key = Keys.hmacShaKeyFor(props.getSecret().getBytes(StandardCharsets.UTF_8));
     }
 
-    // 1. 토큰 생성
-    public String generateToken(String subject, List<String> roles, TokenType type) {
+    // 1. 토큰 생성 (확정형: userId를 클레임에 포함)
+    public String generateToken(Long userId, String subject, List<String> roles, TokenType type) {
         long validity = type == TokenType.ACCESS ? props.getAccessTokenValiditySeconds() : props.getRefreshTokenValiditySeconds();
         Instant now = Instant.now();
         Instant exp = now.plusSeconds(validity);
 
         return Jwts.builder()
                 .setSubject(subject)
+                .claim(KEY_USER_ID, userId)
                 .claim(KEY_ROLES, roles)
                 .claim(KEY_TYPE, type.name())
                 .setIssuedAt(Date.from(now))
@@ -67,14 +69,16 @@ public class JwtProvider {
     public Authentication getAuthentication(Claims claims) {
         String subject = claims.getSubject();
         List<String> roles = getRoles(claims);
+        Long userId = getUserId(claims);
 
         List<SimpleGrantedAuthority> authorities = roles.stream()
-                .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role) // 접두사 처리 캡슐화
+                .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
 
-        // 비밀번호는 불필요하므로 null 또는 빈 문자열
-        return new UsernamePasswordAuthenticationToken(subject, null, authorities);
+        // CustomUserDetails를 principal로 사용 (비밀번호는 비움)
+        CustomUserDetails principal = new CustomUserDetails(userId, subject, "", authorities);
+        return new UsernamePasswordAuthenticationToken(principal, null, authorities);
     }
 
     // 4. Access Token 여부 확인 (Claims 기반)
@@ -98,6 +102,11 @@ public class JwtProvider {
         return TokenType.REFRESH.name().equals(claims.get("type"));
     }
 
+    public Long getUserId(Claims claims) {
+        Number n = claims.get(KEY_USER_ID, Number.class);
+        return n == null ? null : n.longValue();
+    }
+
     public Instant getExpiration(String token) {
         return parseClaims(token).getBody().getExpiration().toInstant();
     }
@@ -116,5 +125,9 @@ public class JwtProvider {
     @SuppressWarnings("unchecked")
     public List<String> getRoles(String token) {
         return (List<String>) parseClaims(token).getBody().get("roles", List.class);
+    }
+
+    public Long getUserId(String token) {
+        return getUserId(parseClaims(token).getBody());
     }
 }
