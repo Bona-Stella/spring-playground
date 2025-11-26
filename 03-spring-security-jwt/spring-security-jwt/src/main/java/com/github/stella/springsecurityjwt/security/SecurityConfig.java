@@ -21,14 +21,19 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 public class SecurityConfig {
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public PasswordEncoder passwordEncoder(PasswordProperties passwordProperties) {
+        return new BCryptPasswordEncoder(passwordProperties.getBcryptStrength());
     }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
     }
+
+    // Note:
+    // Spring Boot/Security will auto-configure a DaoAuthenticationProvider-backed AuthenticationManager
+    // as long as a UserDetailsService and PasswordEncoder beans are present (which we have).
+    // This avoids using deprecated DaoAuthenticationProvider constructors/setters directly.
 
     @Bean
     public SecurityFilterChain securityFilterChain(
