@@ -14,6 +14,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -53,7 +54,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 4. Access Token일 경우에만 인증 처리 (Refresh Token은 무시)
             if (jwtProvider.isAccessToken(claims)) {
                 Authentication authentication = jwtProvider.getAuthentication(claims);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                // [변경 전: 기존 코드]
+                // SecurityContextHolder.getContext().setAuthentication(authentication);
+                // [변경 후: 정석 코드]
+                // 1. 빈 컨텍스트를 새로 만든다 (확실하게 깨끗한 상태 보장)
+                SecurityContext context = SecurityContextHolder.createEmptyContext();
+                // 2. 거기에 인증 객체를 넣는다
+                context.setAuthentication(authentication);
+                // 3. Holder에 저장한다
+                SecurityContextHolder.setContext(context);
             }
         }
 
