@@ -72,6 +72,7 @@ public class JwtProvider {
         Long userId = getUserId(claims);
 
         List<SimpleGrantedAuthority> authorities = roles.stream()
+                // Role 검증을 위해 ROLE_ADMIN or ROLE_USER 처럼 붙임
                 .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
