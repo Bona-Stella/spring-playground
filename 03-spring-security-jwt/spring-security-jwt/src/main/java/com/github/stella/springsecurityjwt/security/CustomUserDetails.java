@@ -3,13 +3,17 @@ package com.github.stella.springsecurityjwt.security;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Collection;
 
 /**
  * 애플리케이션 전역에서 사용할 커스텀 Principal 구현체.
  * - 컨트롤러/서비스에서 authentication.getPrincipal() 캐스팅 후 id 등 추가 필드에 접근 가능.
  */
-public class CustomUserDetails implements UserDetails {
+public class CustomUserDetails implements UserDetails, Serializable {
+    @Serial
+    private static final long serialVersionUID = 1L;
     private final Long id;
     private final String username;
     private final String password; // JWT 인증 경로에서는 "" 사용

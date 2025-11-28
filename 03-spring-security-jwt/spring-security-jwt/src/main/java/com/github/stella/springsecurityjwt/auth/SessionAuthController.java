@@ -3,6 +3,7 @@ package com.github.stella.springsecurityjwt.auth;
 import com.github.stella.springsecurityjwt.auth.dto.AuthDtos;
 import com.github.stella.springsecurityjwt.common.api.ApiResponse;
 import com.github.stella.springsecurityjwt.security.CustomUserDetails;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -35,14 +36,15 @@ public class SessionAuthController {
     private final AuthenticationManager authenticationManager;
 
     // 1. 컨텍스트 저장소 (세션 처리용) - 매번 new 하지 않고 재사용
-    private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
+    private final SecurityContextRepository securityContextRepository;
     // 2. 컨텍스트 전략 (Holder 제어용) - 정적 호출 대신 전략 객체 사용
     private final SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder.getContextHolderStrategy();
     // 3. 로그아웃 핸들러를 필드로 선언하여 재사용 (불필요한 객체 생성 방지)
     private final SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
 
-    public SessionAuthController(AuthenticationManager authenticationManager) {
+    public SessionAuthController(AuthenticationManager authenticationManager, SecurityContextRepository securityContextRepository) {
         this.authenticationManager = authenticationManager;
+        this.securityContextRepository = securityContextRepository;
     }
 
     public record SessionLoginResponse(Long userId, String username, List<String> roles) {
@@ -61,9 +63,9 @@ public class SessionAuthController {
 
         // SecurityContext에 저장 후 세션으로 영속화
         // SecurityContext context = SecurityContextHolder.createEmptyContext();
+        // SecurityContextHolder.setContext(context);
         SecurityContext context = securityContextHolderStrategy.createEmptyContext();
         context.setAuthentication(authentication);
-        // SecurityContextHolder.setContext(context);
         securityContextHolderStrategy.setContext(context);
 
         // 세션 생성 및 컨텍스트 저장
@@ -118,6 +120,7 @@ public class SessionAuthController {
         // new SecurityContextLogoutHandler().logout(request, response, SecurityContextHolder.getContext().getAuthentication());
         // return ResponseEntity.ok(ApiResponse.success("LOGOUT_OK", request.getRequestURI()));
         this.logoutHandler.logout(request, response, authentication);
+        // request.logout(); <- 같은 역할
         return ResponseEntity.ok(ApiResponse.success("LOGOUT_OK", request.getRequestURI()));
     }
 }
