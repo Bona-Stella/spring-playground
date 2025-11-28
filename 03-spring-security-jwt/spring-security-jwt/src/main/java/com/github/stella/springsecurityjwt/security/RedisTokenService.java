@@ -33,8 +33,8 @@ public class RedisTokenService {
     }
 
     public boolean isBlacklisted(String token) {
-        Boolean has = redis.hasKey(blacklistKey(token));
-        return has != null && has;
+        // return has != null && has;
+        return redis.hasKey(blacklistKey(token));
     }
 
     private String refreshKey(String username) { return "auth:refresh:" + username; }
