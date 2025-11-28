@@ -24,6 +24,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
+    // Session (Redis-backed HTTP session)
+    implementation("org.springframework.session:spring-session-data-redis")
 
     runtimeOnly("com.h2database:h2")
 
