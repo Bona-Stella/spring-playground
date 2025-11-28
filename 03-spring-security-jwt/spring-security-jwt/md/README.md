@@ -53,6 +53,10 @@ Access Token 만료
 - PasswordEncoder
 - UserDetails / UserDetailsService
 
+### ✔ 세션 기반 로그인(추가)
+- Spring Session(Redis)로 서버 세션 저장
+- JWT 흐름과 병행 운영: 경로 분리(`/api/session/**`)
+
 ### ✔ Refresh Token 저장 전략
 - DB(PostgreSQL)
 - Redis
@@ -145,3 +149,47 @@ public ApiResponse<?> sample(@CurrentSecurityContext SecurityContext context) {
 ```
 
 위 예제들은 `AuthSamplesController` 에 구현되어 있으며, `@PreAuthorize` 로 인가를 적용한 샘플입니다.
+
+## 🧪 세션 기반 로그인 추가 안내
+본 프로젝트는 JWT 기반 인증 외에, 동일한 인증 모델을 세션 기반으로도 사용할 수 있도록 병행 구성을 제공합니다. 라우팅으로 흐름을 분리하여 서로 간섭 없이 동작합니다.
+
+### 활성화 개요
+- 의존성: `spring-session-data-redis`
+- 설정: `spring.session.store-type=redis`, `server.servlet.session.timeout=30m` 등
+- 보안 체인 분리: `SecurityFilterChain` 2개
+  - 체인 #0 (세션): `securityMatcher("/api/session/**", "/h2-console/**", "/actuator/health")`, `SessionCreationPolicy.IF_REQUIRED`
+  - 체인 #1 (JWT): 나머지 요청, `SessionCreationPolicy.STATELESS`
+- 공통: 필터 단계 예외는 `ExceptionHandlingFilter` 통해 전역 예외 처리기로 위임
+
+### 세션 API 엔드포인트
+- `POST /api/session/login` — 세션 로그인(permitAll)
+  - 요청: `{ "username": "id", "password": "pw" }`
+  - 성공 시: `JSESSIONID` 쿠키가 발급되며, 응답 바디는 사용자 요약 정보(`userId`, `username`, `roles`)를 담은 `ApiResponse` 포맷
+- `GET /api/session/me` — 현재 세션 사용자 정보 조회(인증 필요)
+- `POST /api/session/logout` — 세션 로그아웃(인증 필요)
+
+모든 응답은 기존과 동일한 `ApiResponse<T>` 포맷입니다.
+
+### 호출 예시(curl)
+1) 로그인(세션 생성)
+```
+curl -i -c cookie.txt -H "Content-Type: application/json" \
+     -d '{"username":"alice","password":"pass"}' \
+     http://localhost:8080/api/session/login
+```
+2) 인증 요청(세션 유지)
+```
+curl -b cookie.txt http://localhost:8080/api/session/me
+```
+3) 로그아웃
+```
+curl -X POST -b cookie.txt http://localhost:8080/api/session/logout
+```
+
+### CSRF 관련
+- 본 예제의 세션 체인은 API 학습 편의를 위해 CSRF를 비활성화했습니다.
+- 브라우저 기반 폼/페이지에서 운영 시에는 `CookieCsrfTokenRepository` 등으로 CSRF를 활성화하는 것을 권장합니다.
+
+### JWT 흐름과의 관계
+- 기존 JWT 엔드포인트(`/api/auth/**`, 보호 API)는 그대로 유지되며, 세션 엔드포인트는 `/api/session/**`로 분리되어 서로 영향을 주지 않습니다.
+- 두 방식은 동시에 서비스 가능하며, 클라이언트는 요구사항에 따라 적절한 방식을 선택하면 됩니다.
