@@ -1,8 +1,12 @@
 package com.github.stella.springsecurityjwt.security;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+@Setter
+@Getter
 @Component
 @ConfigurationProperties(prefix = "app.security.password")
 public class PasswordProperties {
@@ -11,11 +15,4 @@ public class PasswordProperties {
      */
     private int bcryptStrength = 10;
 
-    public int getBcryptStrength() {
-        return bcryptStrength;
-    }
-
-    public void setBcryptStrength(int bcryptStrength) {
-        this.bcryptStrength = bcryptStrength;
-    }
 }
