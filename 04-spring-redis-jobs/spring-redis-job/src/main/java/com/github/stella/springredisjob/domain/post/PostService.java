@@ -5,6 +5,7 @@ import com.github.stella.springredisjob.common.error.ErrorCode;
 import com.github.stella.springredisjob.domain.post.dto.CreatePostRequest;
 import com.github.stella.springredisjob.domain.post.dto.PostDto;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +26,7 @@ public class PostService {
         return PostDto.from(post);
     }
 
-    @CacheEvict(value = "post", key = "#result.id")
+    @CachePut(value = "post", key = "#result.id")
     @Transactional
     public PostDto create(CreatePostRequest req) {
         Post saved = repository.save(new Post(req.title(), req.content()));
