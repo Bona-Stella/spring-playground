@@ -1,15 +1,17 @@
 package com.github.stella.springredisjob.external.mock;
 
-import com.github.stella.springredisjob.common.api.ApiResponse;
 import com.github.stella.springredisjob.common.error.CustomException;
 import com.github.stella.springredisjob.common.error.ErrorCode;
 import com.github.stella.springredisjob.external.mock.dto.ExternalWeatherRequest;
 import com.github.stella.springredisjob.external.mock.dto.ExternalWeatherResponse;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -17,13 +19,9 @@ public class ExternalService {
     private static final Logger log = LoggerFactory.getLogger(ExternalService.class);
 
     private final FakeExternalApiClient client;
-    private final ExternalRetryPolicy retryPolicy;
-    private final SimpleCircuitBreaker circuitBreaker;
 
-    public ExternalService(FakeExternalApiClient client, ExternalRetryPolicy retryPolicy, SimpleCircuitBreaker circuitBreaker) {
+    public ExternalService(FakeExternalApiClient client) {
         this.client = client;
-        this.retryPolicy = retryPolicy;
-        this.circuitBreaker = circuitBreaker;
     }
 
     // 캐시 적용된 동기 호출
@@ -32,26 +30,22 @@ public class ExternalService {
         return fetchWithPolicy(city);
     }
 
-    // 정책(재시도/서킷) 적용하지만 캐시 미사용
+    // 정책(Resilience4j: 재시도/서킷) 적용, 캐시 미사용
+    @CircuitBreaker(name = "externalMock", fallbackMethod = "fallbackExternal")
+    @Retry(name = "externalMock")
     public ExternalWeatherResponse fetchWithPolicy(String city) {
-        if (!circuitBreaker.allowRequest()) {
-            log.debug("[External] circuit OPEN: request blocked for city={}", city);
-            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
-        }
         try {
-            ExternalWeatherResponse res = retryPolicy.executeWithRetry(() -> {
-                try {
-                    return client.fetchWeather(new ExternalWeatherRequest(city));
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            });
-            circuitBreaker.onSuccess();
-            return res;
+            return client.fetchWeather(new ExternalWeatherRequest(city));
         } catch (Exception e) {
-            circuitBreaker.onFailure();
-            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
+            throw (e instanceof RuntimeException re) ? re : new RuntimeException(e);
         }
+    }
+
+    // Resilience4j fallback — 동일 시그니처 + Throwable 마지막 파라미터
+    @SuppressWarnings("unused")
+    private ExternalWeatherResponse fallbackExternal(String city, Throwable e) {
+        log.debug("[External][Fallback] city={} cause={}", city, e.toString());
+        throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
     }
 
     // RAW 호출 (정책/캐시 모두 우회)
