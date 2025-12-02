@@ -92,12 +92,15 @@ public class RedisConfig {
                 // [중요] 모든 캐시의 기본 유효시간을 5분으로 설정
                 // 5분이 지나면 Redis에서 자동으로 삭제됨
                 .entryTtl(Duration.ofMinutes(5))
+
                 // 메서드 리턴값이 null이면 캐싱하지 않음 (메모리 아끼기)
                 .disableCachingNullValues()
+
                 // [키 이름 규칙 커스텀]
                 // 기본값(::) 대신 "cache:캐시이름:키" 형태로 저장됨
                 // 예: @Cacheable(value="user", key="1") -> "cache:user:1"
                 .computePrefixWith(cacheName -> "cache:" + cacheName + ":")
+
                 // [직렬화 적용] Key는 문자열로 저장
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(keySerializer))
                 // [직렬화 적용] Value는 JSON으로 저장 (이게 없으면 외계어로 저장됨)
@@ -125,12 +128,15 @@ public class RedisConfig {
             // 1. 클래스 이름 추가 (예: BoardService)
             // getClass().getSimpleName()을 써서 패키지명 빼고 깔끔하게 클래스명만 가져옴
             sb.append(target.getClass().getSimpleName()).append(":");
+
             // 2. 메서드 이름 추가 (예: getPost)
             sb.append(method.getName());
+
             // 3. 파라미터 값들 추가 (예: 100, "user")
             for (Object param : params) {
                 sb.append(":").append(param);
             }
+
             // 최종 결과 반환: "BoardService:getPost:100"
             return sb.toString();
         };

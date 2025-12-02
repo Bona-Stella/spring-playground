@@ -22,6 +22,7 @@ public class PostAsyncService {
     // 비동기 조회 (가상 스레드 @Async)
     @Async
     public CompletableFuture<PostDto> getAsync(Long id) {
+        /*
         try {
             PostDto dto = postService.get(id);
             return CompletableFuture.completedFuture(dto);
@@ -30,12 +31,15 @@ public class PostAsyncService {
             cf.completeExceptionally(e);
             return cf;
         }
+        */
+        return CompletableFuture.completedFuture(postService.get(id));
     }
 
     // 비동기 생성 (가상 스레드 @Async)
     @Async
     @Transactional
     public CompletableFuture<PostDto> createAsync(CreatePostRequest req) {
+        /*
         try {
             PostDto created = postService.create(req);
             return CompletableFuture.completedFuture(created);
@@ -44,6 +48,8 @@ public class PostAsyncService {
             cf.completeExceptionally(e);
             return cf;
         }
+        */
+        return CompletableFuture.completedFuture(postService.create(req));
     }
 
     // 부가처리 예시: 감사 로그 비동기 기록

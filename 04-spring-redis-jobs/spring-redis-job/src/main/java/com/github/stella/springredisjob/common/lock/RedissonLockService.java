@@ -20,22 +20,26 @@ import java.util.concurrent.TimeUnit;
 public class RedissonLockService implements DistributedLock {
 
     private final RedissonClient redissonClient;
-    private final long defaultWaitSeconds;
+    // private final long defaultWaitSeconds;
+    private final LockProperties lockProperties; // LockProperties 주입
 
     public RedissonLockService(
             RedissonClient redissonClient,
-            @Value("${app.lock.waitSeconds:2}") long defaultWaitSeconds
+            // @Value("${app.lock.waitSeconds:2}") long defaultWaitSeconds
+            LockProperties lockProperties
     ) {
         this.redissonClient = redissonClient;
-        this.defaultWaitSeconds = defaultWaitSeconds;
+        // this.defaultWaitSeconds = defaultWaitSeconds;
+        this.lockProperties = lockProperties;
     }
 
     @Override
     public boolean lock(String key, Duration ttl) {
         RLock lock = redissonClient.getLock(key);
-        long leaseSec = Math.max(1, ttl == null ? 10 : ttl.toSeconds());
+        // long leaseSec = Math.max(1, ttl == null ? lockProperties.getLeaseSeconds() : ttl.toSeconds());
+        long leaseSec = (ttl == null || ttl.isZero()) ? lockProperties.getLeaseSeconds() : ttl.toSeconds();
         try {
-            return lock.tryLock(Math.max(0, defaultWaitSeconds), leaseSec, TimeUnit.SECONDS);
+            return lock.tryLock(Math.max(0, lockProperties.getWaitSeconds()), leaseSec, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return false;
@@ -46,7 +50,7 @@ public class RedissonLockService implements DistributedLock {
     public boolean lock(String key, Duration ttl, Long waitSecondsOverride) {
         RLock lock = redissonClient.getLock(key);
         long leaseSec = Math.max(1, ttl == null ? 10 : ttl.toSeconds());
-        long waitSec = waitSecondsOverride == null ? Math.max(0, defaultWaitSeconds) : Math.max(0, waitSecondsOverride);
+        long waitSec = waitSecondsOverride == null ? Math.max(0, lockProperties.getWaitSeconds()) : Math.max(0, waitSecondsOverride);
         try {
             return lock.tryLock(waitSec, leaseSec, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
