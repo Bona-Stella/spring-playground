@@ -17,15 +17,15 @@
 | **Chat Service**    | 8083 | 라이브 채팅, **Redis Pub/Sub**, Kafka(Prod)                         |
 | **Worker Service**  | 8084 | 비동기 후처리(알림, 로그적재), **Java 21 Virtual Threads**, MQ Consumer    |
 ### 2. 미들웨어 활용 구조
-🔹 Redis (In-Memory Performance)
+####🔹 Redis (In-Memory Performance)
 - Caching: DB 조회 부하 감소 (Look-aside 패턴).
 - Session Store: MSA 간 로그인 세션 공유.
 - Distributed Lock: 재고 차감 등 동시성 제어.
-- Pub/Sub: 실시간 웹소켓 메시지 브로드캐스팅.
-🔹 RabbitMQ (Task Reliability)
+- Pub/Sub: 실시간 웹소켓 메시지 브로드캐스팅.  
+####🔹 RabbitMQ (Task Reliability)
 - 용도: 반드시 처리되어야 하는 작업 (주문 접수, 이메일 발송).
-- 특징: 메시지 확인(Ack), 재시도(Retry), 실패 격리(DLQ) 보장.
-🔹 Apache Kafka (Data Streaming)
+- 특징: 메시지 확인(Ack), 재시도(Retry), 실패 격리(DLQ) 보장.  
+####🔹 Apache Kafka (Data Streaming)
 - 용도: 대용량 데이터 수집 및 기록 (채팅 로그, 클릭 스트림, 통계).
 - 특징: 압도적인 처리량, 디스크 기반 영구 저장, 배치 처리 용이.
 ## 🔄 상세 워크플로우 (Flow)
