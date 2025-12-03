@@ -1,0 +1,33 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: auth
+  datasource:
+    url: jdbc:h2:mem:authdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+jwt:
+  access-token-validity-seconds: 900   # 15분
+  refresh-token-validity-seconds: 1209600 # 14일
+  issuer: spring-msa-mq-auth
+  private-key-location: classpath:keys/private.pem
+  public-key-location: classpath:keys/public.pem
+
+logging:
+  level:
+    org.springframework.security: INFO
