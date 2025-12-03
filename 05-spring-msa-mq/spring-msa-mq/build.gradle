@@ -1,30 +1,57 @@
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '4.0.0'
-	id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.springframework.boot' version '3.3.5' apply false
+    // [수정 1] 루트 프로젝트에는 적용하지 않도록 apply false 추가
+    id 'io.spring.dependency-management' version '1.1.7' apply false
 }
 
 group = 'com.github.stella'
 version = '0.0.1-SNAPSHOT'
 description = 'spring-msa-mq'
 
-java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
+ext {
+    springBootVersion = '3.3.5'
+    // [수정 2] Spring Boot 3.3.x와 호환되는 올바른 Cloud 버전으로 변경
+    springCloudVersion = '2023.0.3'
+    javaVersion = 21
 }
 
-repositories {
-	mavenCentral()
+allprojects {
+    repositories {
+        mavenCentral()
+    }
 }
 
-dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-	runtimeOnly 'com.h2database:h2'
-	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
+
+    group = rootProject.group
+    version = rootProject.version
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(rootProject.ext.javaVersion)
+        }
+    }
+
+    dependencies {
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.boot:spring-boot-dependencies:${springBootVersion}"
+            mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+        }
+    }
 }
 
-tasks.named('test') {
-	useJUnitPlatform()
+// worker 등 하위 모듈에 스프링 부트 플러그인 적용
+configure(subprojects.findAll { it.name in ['gateway','auth','order','chat','worker'] }) {
+    apply plugin: 'org.springframework.boot'
 }

@@ -1,1 +1,8 @@
 rootProject.name = 'spring-msa-mq'
+
+include 'common'
+include 'gateway'
+include 'auth'
+include 'order'
+include 'chat'
+include 'worker'
