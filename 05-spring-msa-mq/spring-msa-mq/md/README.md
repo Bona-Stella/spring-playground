@@ -149,3 +149,103 @@ public void sendChatLog(ChatMessage message) {
 
 
 
+
+
+## Phase 5 운영 가이드 — 사용법(옵션 B 블랙리스트 + 사가 보상)
+
+아래는 추가 구현된 두 기능의 실행/검증 방법입니다.
+
+### 1) 옵션 B: 푸시형 인메모리 블랙리스트(게이트웨이에서 즉시 차단)
+- 개요: Auth가 로그아웃/강제차단 시 `auth:revoke` 채널로 `{jti, exp}` 이벤트를 발행하면, Gateway가 Redis Pub/Sub을 통해 수신하여 로컬 메모리(DenySet)에 등록합니다. 이후 JWT 서명/만료 검증 후 `jti`가 DenySet에 있으면 즉시 401을 반환합니다(요청당 Redis 조회 없음).
+
+- 사전 준비
+  - 인프라: `docker compose up -d redis`
+  - 키 파일: 개발용 placeholder가 포함되어 있으므로 필요 시 실제 키로 교체(auth/gateway `resources/keys`).
+
+- 실행 순서
+  1) 애플리케이션 기동: `auth(8081) → gateway(8080) → order(8082)`
+  2) 회원가입/로그인
+     ```bash
+     curl -X POST http://localhost:8081/api/auth/signup \
+          -H "Content-Type: application/json" \
+          -d '{"username":"u1","password":"p1"}'
+
+     # 로그인 → 응답 헤더 Authorization에 Access 토큰, 쿠키에 Refresh 저장
+     curl -i -X POST http://localhost:8081/api/auth/login \
+          -H "Content-Type: application/json" \
+          -d '{"username":"u1","password":"p1"}'
+     ```
+  3) 보호 API 호출(성공)
+     ```bash
+     # 응답 헤더의 Authorization: Bearer {access} 값을 아래에 대입
+     ACCESS=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+     curl -H "Authorization: Bearer $ACCESS" \
+          http://localhost:8080/api/order/products
+     ```
+  4) 로그아웃 → 토큰 즉시 차단
+     ```bash
+     curl -X POST http://localhost:8081/api/auth/logout \
+          -H "Authorization: Bearer $ACCESS"
+     ```
+  5) 같은 Access로 다시 호출 → 401(게이트웨이 인메모리 차단)
+     ```bash
+     curl -i -H "Authorization: Bearer $ACCESS" \
+          http://localhost:8080/api/order/products
+     ```
+
+- 참고 설정
+  - Gateway `application.yml`
+    ```yaml
+    spring:
+      data:
+        redis:
+          host: localhost
+          port: 6379
+    ```
+
+### 2) 사가 오케스트레이션(보상 트랜잭션)
+- 개요: `Order`에서 주문/재고 차감 후, `Worker`가 결제를 시뮬레이션합니다. 결제가 실패하면 `Worker`가 보상 커맨드 `StockRestoreCommand(orderId, productId, quantity)`를 발행하고, `Order`가 이를 수신하여 재고를 복구하고 주문 상태를 `CANCELED`로 변경합니다.
+
+- 인프라/기동
+  - 인프라: `docker compose up -d redis rabbitmq`
+  - 앱: `auth(8081) → gateway(8080) → order(8082) → worker(8084)` 순으로 기동
+
+- 결제 실패(보상 유도) 토글
+  - `worker/src/main/resources/application.yml`에 다음 설정을 추가하거나 환경변수로 전달
+    ```yaml
+    worker:
+      orchestration:
+        fail-payment: true
+    ```
+
+- 시나리오
+  1) 로그인하여 Access 준비(옵션 B 섹션 참고)
+  2) 주문 생성(게이트웨이를 통해)
+     ```bash
+     curl -X POST http://localhost:8080/api/order \
+          -H "Authorization: Bearer $ACCESS" \
+          -H "Content-Type: application/json" \
+          -d '{"userId":1, "productId":1, "quantity":2}'
+     ```
+  3) 기대 결과
+     - Worker 로그: 결제 실패(데모) → `orders.stock.restore`로 보상 커맨드 발행
+     - Order가 커맨드 수신 → 제품 재고 복원 + 주문 상태 `CANCELED`
+  4) 확인 방법
+     - Order 콘솔 로그 또는 H2 콘솔에서 `orders.status = 'CANCELED'` 확인
+     - `products.stock`이 주문 이전 수량으로 복원되었는지 확인
+
+- 사용된 메시지/리소스
+  - 교환: `orders.exchange`
+  - 큐: `orders.created.queue`(주문 생성), `orders.stock.restore.queue`(보상)
+  - 라우팅키: `orders.created`, `orders.stock.restore`
+
+### 트러블슈팅
+- 게이트웨이 401이 즉시 되지 않는 경우
+  - `auth/logout` 호출 시 Auth 로그에 `[Auth] Published revoke`가 찍히는지 확인
+  - Gateway 로그에 `[Gateway] Subscribed to revoke channel` 및 `Revoked jti=...`가 찍히는지 확인
+  - Redis가 정상 기동/접속되는지 확인(포트 6379)
+
+- 보상 트랜잭션이 동작하지 않는 경우
+  - RabbitMQ 기동 여부(5672), `orders.exchange` 바인딩 및 큐 존재 여부 확인
+  - Worker 로그에서 보상 커맨드 발행 로그 확인, Order에서 보상 리스너 로그 확인
+  - H2 메모리 DB 특성상 재기동 시 데이터가 초기화됩니다(시나리오 재실행 필요)

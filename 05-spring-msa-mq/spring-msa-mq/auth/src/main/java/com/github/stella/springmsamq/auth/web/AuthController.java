@@ -34,15 +34,18 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RedisTokenService tokenService;
+    private final com.github.stella.springmsamq.auth.service.RevokePublisher revokePublisher;
 
     public AuthController(UserService userService,
                           PasswordEncoder passwordEncoder,
                           JwtService jwtService,
-                          RedisTokenService tokenService) {
+                          RedisTokenService tokenService,
+                          com.github.stella.springmsamq.auth.service.RevokePublisher revokePublisher) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.tokenService = tokenService;
+        this.revokePublisher = revokePublisher;
     }
 
     @PostMapping(value = "/signup", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -138,6 +141,8 @@ public class AuthController {
                 Duration ttl = Duration.between(Instant.now(), exp);
                 if (!ttl.isNegative()) {
                     tokenService.blacklistAccess(jti, ttl);
+                    // 푸시형 블랙리스트: 게이트웨이에 즉시 통지
+                    revokePublisher.publish(jti, exp.toEpochMilli());
                 }
             }
         }

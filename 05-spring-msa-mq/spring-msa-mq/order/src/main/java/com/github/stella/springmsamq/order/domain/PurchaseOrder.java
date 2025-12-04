@@ -25,6 +25,10 @@ public class PurchaseOrder {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Status status;
+
     protected PurchaseOrder() {}
 
     public PurchaseOrder(Long id, Long userId, Long productId, int quantity, int totalPrice, LocalDateTime createdAt) {
@@ -34,6 +38,7 @@ public class PurchaseOrder {
         this.quantity = quantity;
         this.totalPrice = totalPrice;
         this.createdAt = createdAt;
+        this.status = Status.CREATED;
     }
 
     public Long getId() { return id; }
@@ -42,4 +47,9 @@ public class PurchaseOrder {
     public int getQuantity() { return quantity; }
     public int getTotalPrice() { return totalPrice; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public Status getStatus() { return status; }
+
+    public void cancel() { this.status = Status.CANCELED; }
+
+    public enum Status { CREATED, CANCELED }
 }

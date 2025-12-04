@@ -41,4 +41,13 @@ public class ProductService {
         p.setStock(p.getStock() - quantity);
         productRepository.save(p);
     }
+
+    @Transactional
+    @CacheEvict(cacheNames = {CACHE_PRODUCTS, CACHE_PRODUCT}, allEntries = true)
+    public void incrementStock(Long productId, int quantity) {
+        Product p = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+        p.setStock(p.getStock() + quantity);
+        productRepository.save(p);
+    }
 }
