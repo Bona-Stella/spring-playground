@@ -12,23 +12,23 @@ spring:
     gateway:
       routes:
         - id: auth
-          uri: http://localhost:8081
+          uri: lb://auth
           predicates:
             - Path=/api/auth/**, /health
         - id: order
-          uri: http://localhost:8082
+          uri: lb://order
           predicates:
             - Path=/api/order/**
         - id: chat
-          uri: http://localhost:8083
+          uri: lb://chat
           predicates:
             - Path=/api/chat/**
         - id: chat-ws
-          uri: http://localhost:8083
+          uri: lb://chat
           predicates:
             - Path=/ws/chat/**
         - id: worker
-          uri: http://localhost:8084
+          uri: lb://worker
           predicates:
             - Path=/api/worker/**
 
@@ -37,6 +37,11 @@ spring:
       resourceserver:
         jwt:
           public-key-location: classpath:keys/public.pem
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
 
 management:
   endpoints:
