@@ -19,6 +19,10 @@ spring:
           uri: http://localhost:8083
           predicates:
             - Path=/api/chat/**
+        - id: chat-ws
+          uri: http://localhost:8083
+          predicates:
+            - Path=/ws/chat/**
         - id: worker
           uri: http://localhost:8084
           predicates:
