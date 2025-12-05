@@ -249,3 +249,69 @@ public void sendChatLog(ChatMessage message) {
   - RabbitMQ 기동 여부(5672), `orders.exchange` 바인딩 및 큐 존재 여부 확인
   - Worker 로그에서 보상 커맨드 발행 로그 확인, Order에서 보상 리스너 로그 확인
   - H2 메모리 DB 특성상 재기동 시 데이터가 초기화됩니다(시나리오 재실행 필요)
+
+
+## 공통 에러 처리 가이드 (ErrorResponse)
+
+본 프로젝트는 모든 MSA에서 동일한 에러 포맷을 반환하도록 표준화했습니다. 공통 스펙은 `:common` 모듈의 `ErrorCode`, `ErrorResponse`를 사용하며, 전역 예외 처리기는 `CommonExceptionHandler`로 구성되어 있습니다.
+
+### 1) 적용 범위
+- 서블릿 MVC 기반 서비스: `auth`, `order`, `chat`, `worker`
+  - 각 애플리케이션 클래스에서 공통 설정을 임포트하여 사용
+    - `@Import(CommonExceptionConfig.class)`
+  - 예: `AuthApplication`, `OrderApplication`, `ChatApplication`, `WorkerApplication`에 적용됨
+- 리액티브(WebFlux) 기반: `gateway`
+  - `ErrorWebExceptionHandler` 구현체 `GatewayErrorHandler`로 에러 응답을 통일합니다.
+
+### 2) 예외 매핑 표 (기본)
+- 유효성 오류(`MethodArgumentNotValidException`) → `VALIDATION_ERROR(400)`
+- 잘못된 입력(`ConstraintViolationException`, `IllegalArgumentException`, `IllegalStateException`, `HttpMessageNotReadableException`) → `INVALID_INPUT(400)`
+- 인증 실패(Gateway의 JWT 실패 등) → `UNAUTHORIZED(401)`
+- 권한 거부 → `ACCESS_DENIED(403)`
+- 리소스 없음 → `NOT_FOUND(404)`
+- 충돌 → `DUPLICATE_RESOURCE(409)`
+- 기타 모든 예외 → `INTERNAL_SERVER_ERROR(500)`
+
+도메인 전용 예외를 쓰고 싶다면 `CustomException(ErrorCode)`를 추가하고 핸들러에 매핑을 보강하면 됩니다.
+
+### 3) 에러 응답 포맷 예시
+```json
+{
+  "success": false,
+  "status": 400,
+  "code": "VALIDATION_ERROR",
+  "message": "quantity must be greater than or equal to 1",
+  "timestamp": "2025-01-01T12:34:56.789+09:00[Asia/Seoul]",
+  "path": "/api/order"
+}
+```
+
+### 4) 빠른 테스트 방법
+- 유효성 오류 유도
+  ```bash
+  curl -X POST http://localhost:8080/api/order \
+       -H "Authorization: Bearer $ACCESS" \
+       -H "Content-Type: application/json" \
+       -d '{"userId":1, "productId":1, "quantity":0}'
+  ```
+  → 400 응답, `code=VALIDATION_ERROR`
+
+- 인증 실패(Gateway)
+  ```bash
+  curl -i http://localhost:8080/api/order/products
+  ```
+  → 401 응답, `code=UNAUTHORIZED`
+
+### 5) 구현 위치 (참고)
+- 공통: `common/src/main/java/com/github/stella/springmsamq/common/exception/`
+  - `CommonExceptionHandler` (MVC용 `@RestControllerAdvice`)
+  - `CommonExceptionConfig` (각 서비스에서 `@Import`)
+- 서비스 애플리케이션: 각 모듈의 `*Application` 클래스에 `@Import(CommonExceptionConfig.class)` 적용
+- Gateway(WebFlux): `gateway/.../error/GatewayErrorHandler`
+
+### 6) 트러블슈팅
+- 에러가 HTML로 내려올 때
+  - Gateway라면 `GatewayErrorHandler`가 빈으로 등록되어 있는지 확인
+  - MVC 서비스라면 `@Import(CommonExceptionConfig.class)` 누락 여부 확인
+- 메시지가 기대와 다를 때
+  - 실제 예외 타입이 어떤지 로그 확인 후, 필요 시 `CommonExceptionHandler` 매핑 보강
