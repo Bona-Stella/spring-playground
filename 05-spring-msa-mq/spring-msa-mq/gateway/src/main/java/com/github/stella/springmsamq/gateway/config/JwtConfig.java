@@ -10,9 +10,9 @@ import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 
 import java.security.interfaces.RSAPublicKey;
 
@@ -20,11 +20,14 @@ import java.security.interfaces.RSAPublicKey;
 public class JwtConfig {
 
     @Bean
-    public JwtDecoder jwtDecoder(InMemoryDenyList denyList) throws Exception {
+    public ReactiveJwtDecoder  jwtDecoder(InMemoryDenyList denyList) throws Exception {
         // 기존 application.yml의 public-key-location 설정 대신 직접 로드하여 Validator를 주입한다.
         ClassPathResource pub = new ClassPathResource("keys/public.pem");
         RSAPublicKey publicKey = (RSAPublicKey) PemUtils.readPublicKey(pub.getInputStream());
-        NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(publicKey).build();
+        // 2. Reactive 디코더 생성 (NimbusReactiveJwtDecoder 사용)
+        // NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(publicKey).build();
+        NimbusReactiveJwtDecoder decoder = NimbusReactiveJwtDecoder.withPublicKey(publicKey).build();
+
 
         OAuth2TokenValidator<Jwt> withTimestamp = JwtValidators.createDefault();
         OAuth2TokenValidator<Jwt> notRevoked = jwt -> {

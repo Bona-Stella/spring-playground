@@ -31,7 +31,9 @@ spring:
           uri: lb://worker
           predicates:
             - Path=/api/worker/**
-
+# Resource Server 역할: Gateway가 OAuth2 리소스 서버 역할을 수행합니다.
+# JWT 검증: 클라이언트가 요청 헤더에 JWT(토큰)를 실어 보낼 때, Gateway가 public.pem(공개키)을 사용해 이 토큰이 유효한지(위변조되지 않았는지, 만료되지 않았는지) 가장 앞단에서 검사합니다.
+# RSA 비대칭 키 방식: public.pem이 있다는 것은, Auth 서비스가 private key(개인키)로 토큰을 발급(서명)하고, Gateway는 검증만 한다는 뜻입니다. 보안성이 높은 구조입니다.
   security:
     oauth2:
       resourceserver:
