@@ -3,41 +3,78 @@ package com.github.stella.springmsamq.gateway.error;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.stella.springmsamq.common.ErrorCode;
 import com.github.stella.springmsamq.common.ErrorResponse;
+import org.springframework.boot.autoconfigure.web.WebProperties;
+import org.springframework.boot.web.error.ErrorAttributeOptions;
+import org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler;
+import org.springframework.boot.web.reactive.error.ErrorAttributes;
+import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.server.RequestPredicates;
+import org.springframework.web.reactive.function.server.RouterFunction;
+import org.springframework.web.reactive.function.server.RouterFunctions;
+import org.springframework.web.reactive.function.server.ServerRequest;
+import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.server.ServerWebExchange;
-import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler;
-import reactor.core.publisher.Mono;
+import org.springframework.http.codec.ServerCodecConfigurer;
 
-import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 @Component
 @Order(-2)
-public class GatewayErrorHandler implements ErrorWebExceptionHandler {
+public class GatewayErrorHandler extends AbstractErrorWebExceptionHandler {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Override
-    public Mono<Void> handle(ServerWebExchange exchange, Throwable ex) {
-        if (exchange.getResponse().isCommitted()) {
-            return Mono.error(ex);
-        }
+    public GatewayErrorHandler(ErrorAttributes errorAttributes,
+                               WebProperties webProperties,
+                               ApplicationContext applicationContext,
+                               ServerCodecConfigurer serverCodecConfigurer) {
+        super(errorAttributes, webProperties.getResources(), applicationContext);
+        setMessageWriters(serverCodecConfigurer.getWriters());
+        setMessageReaders(serverCodecConfigurer.getReaders());
+    }
 
+    @Override
+    protected RouterFunction<ServerResponse> getRoutingFunction(ErrorAttributes errorAttributes) {
+        return RouterFunctions.route(RequestPredicates.all(), this::renderErrorResponse);
+    }
+
+    private ServerResponse.BodyBuilder withJson(HttpStatus status) {
+        return ServerResponse.status(status).contentType(MediaType.APPLICATION_JSON);
+    }
+
+    private reactor.core.publisher.Mono<ServerResponse> build(ServerRequest request, HttpStatus status, ErrorCode code) {
+        ErrorResponse body = new ErrorResponse(
+                false,
+                status.value(),
+                code.name(),
+                code.message(),
+                java.time.ZonedDateTime.now().toString(),
+                request.path()
+        );
+        return withJson(status).body(BodyInserters.fromValue(body));
+    }
+
+    private reactor.core.publisher.Mono<ServerResponse> renderErrorResponse(ServerRequest request) {
+        Throwable error = getError(request);
+
+        // 기본 상태/코드 결정
         HttpStatus status;
         ErrorCode code;
 
-        if (ex instanceof OAuth2AuthenticationException) {
+        if (error instanceof OAuth2AuthenticationException) {
             status = HttpStatus.UNAUTHORIZED;
             code = ErrorCode.UNAUTHORIZED;
-        } else if (ex instanceof ResponseStatusException rse) {
+        } else if (error instanceof ResponseStatusException rse) {
             status = HttpStatus.resolve(rse.getStatusCode().value());
             if (status == null) status = HttpStatus.INTERNAL_SERVER_ERROR;
             code = mapStatusToCode(status);
-        } else if (ex instanceof IllegalArgumentException || ex instanceof IllegalStateException) {
+        } else if (error instanceof IllegalArgumentException || error instanceof IllegalStateException) {
             status = HttpStatus.BAD_REQUEST;
             code = ErrorCode.INVALID_INPUT;
         } else {
@@ -45,26 +82,11 @@ public class GatewayErrorHandler implements ErrorWebExceptionHandler {
             code = ErrorCode.INTERNAL_SERVER_ERROR;
         }
 
-        ErrorResponse body = new ErrorResponse(false,
-                status.value(),
-                code.name(),
-                code.message(),
-                java.time.ZonedDateTime.now().toString(),
-                exchange.getRequest().getPath().value());
+        // 필요 시 에러 속성 로깅용으로만 사용
+        Map<String, Object> attrs = getErrorAttributes(request, ErrorAttributeOptions.defaults());
+        // (여기서는 attrs를 응답 바디에 노출하지 않습니다)
 
-        byte[] bytes;
-        try {
-            bytes = objectMapper.writeValueAsBytes(body);
-        } catch (Exception e) {
-            String fallback = "{\"success\":false,\"status\":" + status.value() + ",\"code\":\"" + code.name() + "\",\"message\":\"" + code.message() + "\"}";
-            bytes = fallback.getBytes(StandardCharsets.UTF_8);
-        }
-
-        var resp = exchange.getResponse();
-        resp.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-        resp.setStatusCode(status);
-        var buffer = resp.bufferFactory().wrap(bytes);
-        return resp.writeWith(Mono.just(buffer));
+        return build(request, status, code);
     }
 
     private ErrorCode mapStatusToCode(HttpStatus status) {
