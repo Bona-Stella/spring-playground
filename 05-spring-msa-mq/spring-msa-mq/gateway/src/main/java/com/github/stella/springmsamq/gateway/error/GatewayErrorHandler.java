@@ -49,11 +49,13 @@ public class GatewayErrorHandler extends AbstractErrorWebExceptionHandler {
     }
 
     private reactor.core.publisher.Mono<ServerResponse> build(ServerRequest request, HttpStatus status, ErrorCode code) {
+        String traceId = request.exchange().getRequest().getId();
+        String message = code.message() + " [traceId=" + traceId + "]";
         ErrorResponse body = new ErrorResponse(
                 false,
                 status.value(),
                 code.name(),
-                code.message(),
+                message,
                 java.time.ZonedDateTime.now().toString(),
                 request.path()
         );
