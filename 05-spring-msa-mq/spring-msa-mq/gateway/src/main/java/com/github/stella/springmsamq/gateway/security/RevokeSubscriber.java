@@ -21,14 +21,17 @@ public class RevokeSubscriber implements MessageListener {
     private final RedisMessageListenerContainer container;
     private final ChannelTopic topic;
     private final InMemoryDenyList denyList;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+//    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     public RevokeSubscriber(RedisMessageListenerContainer container,
                             ChannelTopic revokeTopic,
+                            ObjectMapper objectMapper,
                             @Lazy InMemoryDenyList denyList) {
         this.container = container;
         this.topic = revokeTopic;
         this.denyList = denyList;
+        this.objectMapper = objectMapper;
     }
 
     @PostConstruct

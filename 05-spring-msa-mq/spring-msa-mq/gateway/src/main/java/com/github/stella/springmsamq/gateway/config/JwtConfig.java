@@ -20,7 +20,7 @@ import java.security.interfaces.RSAPublicKey;
 public class JwtConfig {
 
     @Bean
-    public ReactiveJwtDecoder  jwtDecoder(InMemoryDenyList denyList) throws Exception {
+    public ReactiveJwtDecoder jwtDecoder(InMemoryDenyList denyList) throws Exception {
         // 기존 application.yml의 public-key-location 설정 대신 직접 로드하여 Validator를 주입한다.
         ClassPathResource pub = new ClassPathResource("keys/public.pem");
         RSAPublicKey publicKey = (RSAPublicKey) PemUtils.readPublicKey(pub.getInputStream());
