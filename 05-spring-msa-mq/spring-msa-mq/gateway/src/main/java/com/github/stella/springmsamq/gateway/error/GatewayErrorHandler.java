@@ -28,10 +28,9 @@ import java.util.Map;
 @Order(-2)
 public class GatewayErrorHandler extends AbstractErrorWebExceptionHandler {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
     public GatewayErrorHandler(ErrorAttributes errorAttributes,
                                WebProperties webProperties,
+                               ObjectMapper objectMapper,
                                ApplicationContext applicationContext,
                                ServerCodecConfigurer serverCodecConfigurer) {
         super(errorAttributes, webProperties.getResources(), applicationContext);
