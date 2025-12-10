@@ -19,7 +19,7 @@ public class SecurityConfig {
                         .pathMatchers("/health", "/actuator/health", "/api/auth/**", "/ws/**").permitAll()
                         .anyExchange().authenticated()
                 )
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults())) // 👈 "기본 설정으로 JWT 쓸게. 부품(ReactiveJwtDecoder) 좀 찾아와."
                 .build();
     }
 }

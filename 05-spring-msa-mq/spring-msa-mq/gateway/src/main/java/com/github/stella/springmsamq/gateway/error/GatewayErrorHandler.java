@@ -30,7 +30,6 @@ public class GatewayErrorHandler extends AbstractErrorWebExceptionHandler {
 
     public GatewayErrorHandler(ErrorAttributes errorAttributes,
                                WebProperties webProperties,
-                               ObjectMapper objectMapper,
                                ApplicationContext applicationContext,
                                ServerCodecConfigurer serverCodecConfigurer) {
         super(errorAttributes, webProperties.getResources(), applicationContext);
@@ -40,6 +39,7 @@ public class GatewayErrorHandler extends AbstractErrorWebExceptionHandler {
 
     @Override
     protected RouterFunction<ServerResponse> getRoutingFunction(ErrorAttributes errorAttributes) {
+        // "어떤 에러가 오든(all), renderErrorResponse 메서드로 보내라"
         return RouterFunctions.route(RequestPredicates.all(), this::renderErrorResponse);
     }
 
@@ -62,7 +62,7 @@ public class GatewayErrorHandler extends AbstractErrorWebExceptionHandler {
     }
 
     private reactor.core.publisher.Mono<ServerResponse> renderErrorResponse(ServerRequest request) {
-        Throwable error = getError(request);
+        Throwable error = super.getError(request);
 
         // 기본 상태/코드 결정
         HttpStatus status;
