@@ -2,51 +2,76 @@ server:
   port: 8080
 
 spring:
-  application:
-    name: gateway
-  data:
-    redis:
-      host: localhost
-      port: 6379
-  cloud:
-    gateway:
-      routes:
-        - id: auth
-          uri: lb://auth
-          predicates:
-            - Path=/api/auth/**, /health
-        - id: order
-          uri: lb://order
-          predicates:
-            - Path=/api/order/**
-        - id: chat
-          uri: lb://chat
-          predicates:
-            - Path=/api/chat/**
-        - id: chat-ws
-          uri: lb://chat
-          predicates:
-            - Path=/ws/chat/**
-        - id: worker
-          uri: lb://worker
-          predicates:
-            - Path=/api/worker/**
-# Resource Server 역할: Gateway가 OAuth2 리소스 서버 역할을 수행합니다.
-# JWT 검증: 클라이언트가 요청 헤더에 JWT(토큰)를 실어 보낼 때, Gateway가 public.pem(공개키)을 사용해 이 토큰이 유효한지(위변조되지 않았는지, 만료되지 않았는지) 가장 앞단에서 검사합니다.
-# RSA 비대칭 키 방식: public.pem이 있다는 것은, Auth 서비스가 private key(개인키)로 토큰을 발급(서명)하고, Gateway는 검증만 한다는 뜻입니다. 보안성이 높은 구조입니다.
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          public-key-location: classpath:keys/public.pem
+  spring:
+    application:
+      name: gateway
 
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka
+    # [추가 1] 글로벌 타임아웃 (필수 안전장치)
+    cloud:
+      gateway:
+        httpclient:
+          connect-timeout: 1000   # 연결 1초 넘으면 끊기 (서버 죽었을 때)
+          response-timeout: 5s    # 응답 5초 넘으면 끊기 (서버 느릴 때)
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
+        # [추가 2] CORS 설정 (프론트엔드 통신용)
+        globalcors:
+          cors-configurations:
+            '[/**]':
+              allowedOrigins: "http://localhost:3000", "https://my-domain.com"
+              allowedMethods: "*"
+              allowedHeaders: "*"
+              allowCredentials: true
+
+        routes:
+          - id: auth
+            uri: lb://auth
+            predicates:
+              - Path=/api/auth/**, /health
+
+          - id: order
+            uri: lb://order
+            predicates:
+              - Path=/api/order/**
+            # [추가 3] 특정 라우트 개별 타임아웃 (필요시)
+            metadata:
+              response-timeout: 3000 # 주문은 3초 안에 안 되면 실패 처리
+
+          - id: chat
+            uri: lb://chat
+            predicates:
+              - Path=/api/chat/**
+
+          - id: chat-ws
+            uri: lb://chat
+            predicates:
+              - Path=/ws/chat/**
+            # [주의] 웹소켓은 연결이 오래 유지되어야 하므로 타임아웃을 길게 주거나 해제해야 함
+            metadata:
+              response-timeout: 3600000 # 1시간 (웹소켓용)
+
+          - id: worker
+            uri: lb://worker
+            predicates:
+              - Path=/api/worker/**
+
+    data:
+      redis:
+        host: localhost
+        port: 6379
+
+    security:
+      oauth2:
+        resourceserver:
+          jwt:
+            public-key-location: classpath:keys/public.pem
+
+  eureka:
+    client:
+      service-url:
+        defaultZone: http://localhost:8761/eureka
+
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: health, info, metrics, prometheus # [추가 4] 모니터링용 메트릭 추가
