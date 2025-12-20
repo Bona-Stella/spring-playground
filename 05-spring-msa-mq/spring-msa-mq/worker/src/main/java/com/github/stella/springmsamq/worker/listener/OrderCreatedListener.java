@@ -1,40 +1,40 @@
 package com.github.stella.springmsamq.worker.listener;
 
 import com.github.stella.springmsamq.common.event.OrderAmqp;
-import com.github.stella.springmsamq.common.event.StockRestoreCommand;
 import com.github.stella.springmsamq.common.event.OrderCreatedEvent;
+import com.github.stella.springmsamq.common.event.StockRestoreCommand;
 import com.github.stella.springmsamq.worker.config.WorkerProperties;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
 import java.time.Duration;
 
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class OrderCreatedListener {
-    private static final Logger log = LoggerFactory.getLogger(OrderCreatedListener.class);
 
     private final RabbitTemplate rabbitTemplate;
     private final StringRedisTemplate redisTemplate;
     private final WorkerProperties props;
-    private final Counter processedCounter;
-    private final Counter skippedCounter;
-    private final Timer processingTimer;
+    private final MeterRegistry meterRegistry;
 
-    public OrderCreatedListener(RabbitTemplate rabbitTemplate,
-                                StringRedisTemplate redisTemplate,
-                                WorkerProperties props,
-                                MeterRegistry meterRegistry) {
-        this.rabbitTemplate = rabbitTemplate;
-        this.redisTemplate = redisTemplate;
-        this.props = props;
+    // Metrics (생성자 주입 후 @PostConstruct 초기화 또는 지연 초기화 추천)
+    private Counter processedCounter;
+    private Counter skippedCounter;
+    private Timer processingTimer;
+
+    @PostConstruct
+    public void initMetrics() {
         this.processedCounter = meterRegistry.counter("worker.orders.processed");
         this.skippedCounter = meterRegistry.counter("worker.orders.skipped.idempotent");
         this.processingTimer = meterRegistry.timer("worker.orders.processing.time");
@@ -44,54 +44,64 @@ public class OrderCreatedListener {
     public void onOrderCreated(@Payload OrderCreatedEvent event) {
         String trace = "orderId=" + event.orderId();
         String idemKey = "orders:processed:" + event.orderId();
+
         try {
-            // 오케스트레이션 데모: 강제 결제 실패 시나리오 → 보상 트랜잭션(재고 복원) 트리거
+            // 1. [데모용] 강제 결제 실패 시나리오 → 보상 트랜잭션 트리거
             if (props.getOrchestration().isFailPayment()) {
                 log.warn("[Worker] Orchestration demo: forcing payment failure for {}", trace);
-                // 보상 커맨드 발행 (재고 복원 + 주문 취소)
-                rabbitTemplate.convertAndSend(OrderAmqp.EXCHANGE,
-                        OrderAmqp.ROUTING_KEY_STOCK_RESTORE,
-                        new StockRestoreCommand(event.orderId(), event.productId(), event.quantity()));
-                // 멱등성 키를 설정하지 않고 종료해 재처리 여지를 남김(데모 목적)
-                return;
+                triggerCompensation(event);
+                return; // 멱등성 키 설정 없이 종료 (재처리/테스트 용이성)
             }
-            // 멱등성 체크
-            Boolean exists = redisTemplate.hasKey(idemKey);
-            if (Boolean.TRUE.equals(exists)) {
+
+            // 2. 멱등성 체크 (Redis)
+            if (redisTemplate.hasKey(idemKey)) {
                 skippedCounter.increment();
-                log.info("[Worker] Skip duplicated order event due to idempotency: {}", trace);
+                log.info("[Worker] Skip duplicated order event: {}", trace);
                 return;
             }
 
-            processingTimer.record(() -> {
-                // 실제 처리 로직 (예: 결제/알림) — 데모로 로그
-                log.info("[Worker] Consumed OrderCreatedEvent: {}, userId={}, productId={}, qty={}, total={}",
-                        trace, event.userId(), event.productId(), event.quantity(), event.totalPrice());
-            });
+            // 3. 실제 비즈니스 로직 처리 (Service 위임 권장 영역)
+            processingTimer.record(() -> processOrderLogic(event, trace));
 
-            // 처리 완료 후 멱등성 키 설정
+            // 4. 처리 완료 마킹 (TTL 설정)
             long ttlSec = Math.max(60, props.getIdempotency().getTtlSeconds());
             redisTemplate.opsForValue().set(idemKey, "1", Duration.ofSeconds(ttlSec));
             processedCounter.increment();
+
         } catch (TransientProcessingException e) {
-            // 일시적 오류 → Retry 큐로 이동 (TTL 후 메인으로 재유입)
+            // 일시적 오류 → Retry Queue로 전송 (설정된 TTL 후 다시 메인 큐로 복귀)
             log.warn("[Worker] Transient error, send to retry: {} reason={}", trace, e.getMessage());
             rabbitTemplate.convertAndSend("", OrderAmqp.QUEUE_CREATED_RETRY, event);
         } catch (PermanentProcessingException e) {
-            // 영구 실패 → 보상 트랜잭션 트리거(재고 복원 커맨드 발행)
+            // 영구 실패 → 보상 트랜잭션(재고 복원)
             log.error("[Worker] Permanent error, triggering compensation for {}", trace, e);
-            rabbitTemplate.convertAndSend(OrderAmqp.EXCHANGE,
-                    OrderAmqp.ROUTING_KEY_STOCK_RESTORE,
-                    new StockRestoreCommand(event.orderId(), event.productId(), event.quantity()));
-            // DLQ로도 보내고 싶다면 rethrow, 그렇지 않으면 종료
-            return;
+            triggerCompensation(event);
         } catch (Exception e) {
-            // 기본은 재시도 가능으로 간주
+            // 알 수 없는 오류 → 기본적으로 재시도 시도
             log.warn("[Worker] Unknown error, send to retry: {}", trace, e);
             rabbitTemplate.convertAndSend("", OrderAmqp.QUEUE_CREATED_RETRY, event);
         }
     }
 
+    /**
+     * 실제 비즈니스 로직 (추후 WorkerService 등으로 분리 권장)
+     */
+    private void processOrderLogic(OrderCreatedEvent event, String trace) {
+        // 예: 외부 결제 승인 요청, 배송 시스템 요청 등
+        log.info("[Worker] Consumed OrderCreatedEvent: {}, userId={}, productId={}, qty={}, total={}",
+                trace, event.userId(), event.productId(), event.quantity(), event.totalPrice());
+    }
+
+    /**
+     * 보상 트랜잭션 발행 (재고 복원 + 주문 취소)
+     */
+    private void triggerCompensation(OrderCreatedEvent event) {
+        rabbitTemplate.convertAndSend(OrderAmqp.EXCHANGE,
+                OrderAmqp.ROUTING_KEY_STOCK_RESTORE,
+                new StockRestoreCommand(event.orderId(), event.productId(), event.quantity()));
+    }
+
+    // Custom Exceptions (별도 파일 분리 권장하지만, 편의상 내부 유지 시 static class)
     public static class TransientProcessingException extends RuntimeException {
         public TransientProcessingException(String message) { super(message); }
     }
