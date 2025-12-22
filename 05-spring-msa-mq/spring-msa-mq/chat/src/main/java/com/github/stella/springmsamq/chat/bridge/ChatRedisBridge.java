@@ -1,9 +1,9 @@
 package com.github.stella.springmsamq.chat.bridge;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.stella.springmsamq.common.chat.ChatPayload;
 import com.github.stella.springmsamq.common.chat.ChatTopics;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
@@ -13,8 +13,6 @@ import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
-
-import jakarta.annotation.PostConstruct;
 
 @Component
 public class ChatRedisBridge implements MessageListener {
