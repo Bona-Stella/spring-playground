@@ -1,10 +1,14 @@
 package com.github.stella.springsecurityjwt.user.domain;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.Set;
 
 @Entity
+@Getter
+// @NoArgsConstructor(access = AccessLevel.PROTECTED) -> JPA용
 @Table(name = "users")
 public class User {
     @Id
@@ -14,6 +18,7 @@ public class User {
     @Column(unique = true, nullable = false)
     private String username;
 
+    @Setter
     @Column(nullable = false)
     private String password;
 
@@ -29,11 +34,4 @@ public class User {
         this.password = password;
         this.roles = roles;
     }
-
-    public Long getId() { return id; }
-    public String getUsername() { return username; }
-    public String getPassword() { return password; }
-    public Set<String> getRoles() { return roles; }
-
-    public void setPassword(String password) { this.password = password; }
 }
