@@ -1,8 +1,12 @@
 package com.github.stella.springmsamq.order.domain;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
+@Getter
 @Entity
 @Table(name = "orders")
 public class PurchaseOrder {
@@ -40,14 +44,6 @@ public class PurchaseOrder {
         this.createdAt = createdAt;
         this.status = Status.CREATED;
     }
-
-    public Long getId() { return id; }
-    public Long getUserId() { return userId; }
-    public Long getProductId() { return productId; }
-    public int getQuantity() { return quantity; }
-    public int getTotalPrice() { return totalPrice; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public Status getStatus() { return status; }
 
     public void cancel() { this.status = Status.CANCELED; }
 
