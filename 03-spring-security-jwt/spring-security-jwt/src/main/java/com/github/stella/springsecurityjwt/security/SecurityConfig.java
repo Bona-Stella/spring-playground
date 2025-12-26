@@ -52,8 +52,6 @@ public class SecurityConfig {
     @Order(0)
     public SecurityFilterChain sessionSecurityFilterChain(
             HttpSecurity http,
-            JwtProvider jwtProvider,
-            RedisTokenService redisTokenService,
             HandlerExceptionResolver handlerExceptionResolver
     ) throws Exception {
         // Session-based chain for /api/session/** endpoints

@@ -2,7 +2,9 @@ package com.github.stella.springapiboard.board.domain;
 
 import com.github.stella.springapiboard.common.jpa.BaseTimeEntity;
 import jakarta.persistence.*;
+import lombok.Getter;
 
+@Getter
 @Entity
 @Table(name = "file_attachments", indexes = {
         @Index(name = "idx_file_post", columnList = "post_id")
@@ -43,11 +45,4 @@ public class FileAttachment extends BaseTimeEntity {
         this.post = post;
     }
 
-    public Long getId() { return id; }
-    public String getOriginalName() { return originalName; }
-    public String getSavedName() { return savedName; }
-    public String getContentType() { return contentType; }
-    public long getSize() { return size; }
-    public String getPath() { return path; }
-    public Post getPost() { return post; }
 }

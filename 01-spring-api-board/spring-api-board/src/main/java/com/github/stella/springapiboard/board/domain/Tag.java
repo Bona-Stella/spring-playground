@@ -2,7 +2,9 @@ package com.github.stella.springapiboard.board.domain;
 
 import com.github.stella.springapiboard.common.jpa.BaseTimeEntity;
 import jakarta.persistence.*;
+import lombok.Getter;
 
+@Getter
 @Entity
 @Table(name = "tags", indexes = {
         @Index(name = "idx_tag_slug", columnList = "slug", unique = true)
@@ -25,10 +27,6 @@ public class Tag extends BaseTimeEntity {
         this.name = name;
         this.slug = slug;
     }
-
-    public Long getId() { return id; }
-    public String getName() { return name; }
-    public String getSlug() { return slug; }
 
     public void update(String name, String slug) {
         if (name != null) this.name = name;

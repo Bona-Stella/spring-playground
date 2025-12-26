@@ -43,6 +43,10 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    // Testcontainers for PostgreSQL integration tests
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.testcontainers:postgresql")
     constraints {
         implementation("org.apache.commons:commons-lang3:3.18.0") {
             because("GHSA-j288-q9x7-2f5v / CVE-2025-48924 취약점 패치")
