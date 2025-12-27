@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '4.0.1'
+    id 'org.springframework.boot' version '3.4.1'
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -25,14 +25,29 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-h2console'
-    implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-    compileOnly 'org.projectlombok:lombok'
+    // 1. Web & GraphQL 필수
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-graphql'
+
+    // 2. DB 관련 (H2)
     runtimeOnly 'com.h2database:h2'
+    // (참고: 'spring-boot-h2console'이라는 의존성은 없습니다. application.properties에서 설정으로 켜는 것입니다.)
+
+    // 3. 보안 (Security가 있으면 테스트가 복잡해지므로, 일단 주석 처리 추천)
+    // implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    // 4. 편의 도구
+    compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
-    testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
-    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+
+    // 5. 테스트 (여기가 핵심)
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.graphql:spring-graphql-test'
+    // (참고: 'starter-webmvc-test' 같은 건 없습니다. starter-test 하나면 충분합니다.)
+
+    // 6. Security 테스트 (Security 사용 시 필요)
+    // testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
