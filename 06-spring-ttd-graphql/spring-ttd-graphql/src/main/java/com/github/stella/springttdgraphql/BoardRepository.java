@@ -4,6 +4,7 @@ import org.springframework.stereotype.Repository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public class BoardRepository {
@@ -17,5 +18,13 @@ public class BoardRepository {
 
     public List<Board> findAll() {
         return new ArrayList<>(storage);
+    }
+
+    // ▼ 추가된 메서드
+    public Board save(String name) {
+        String id = UUID.randomUUID().toString(); // 랜덤 ID 생성
+        Board newBoard = new Board(id, name);
+        storage.add(newBoard);
+        return newBoard;
     }
 }
