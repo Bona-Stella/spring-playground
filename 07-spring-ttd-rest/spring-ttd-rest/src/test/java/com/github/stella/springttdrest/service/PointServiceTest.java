@@ -8,7 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
+import static org.mockito.ArgumentMatchers.any;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,15 +32,17 @@ class PointServiceTest {
         long chargeAmount = 1000L;
         UserPoint existingPoint = UserPoint.builder().userId(userId).point(500L).build();
 
-        // Repository가 특정 유저를 찾으면 existingPoint를 반환한다고 가정 (Mocking)
         given(pointRepository.findByUserId(userId)).willReturn(Optional.of(existingPoint));
+
+        // ★ 추가된 부분: save 호출 시, 들어온 객체(Argument)를 그대로 반환한다고 가정
+        given(pointRepository.save(any(UserPoint.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
         UserPoint result = pointService.charge(userId, chargeAmount);
 
         // then
         assertThat(result).isNotNull();
-        assertThat(result.getPoint()).isEqualTo(1500L); // 500 + 1000 = 1500
+        assertThat(result.getPoint()).isEqualTo(1500L);
     }
 
     @Test
