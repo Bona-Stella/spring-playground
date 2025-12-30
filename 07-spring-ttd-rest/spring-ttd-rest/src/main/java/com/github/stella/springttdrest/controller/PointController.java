@@ -1,0 +1,21 @@
+package com.github.stella.springttdrest.controller;
+
+import com.github.stella.springttdrest.dto.PointChargeRequest;
+import com.github.stella.springttdrest.domain.UserPoint;
+import com.github.stella.springttdrest.service.PointService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/point")
+public class PointController {
+
+    private final PointService pointService;
+
+    @PatchMapping("/charge")
+    public UserPoint charge(@RequestBody PointChargeRequest request) {
+        // 실제 서비스 로직 호출
+        return pointService.charge(request.userId(), request.amount());
+    }
+}

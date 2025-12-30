@@ -57,4 +57,38 @@ class PointServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("충전 금액은 0보다 커야 합니다.");
     }
+
+    @Test
+    @DisplayName("포인트 사용 성공 - 잔액이 감소해야 한다")
+    void use_success() {
+        // given
+        Long userId = 1L;
+        long useAmount = 400L;
+        UserPoint existingPoint = UserPoint.builder().userId(userId).point(1000L).build();
+
+        given(pointRepository.findByUserId(userId)).willReturn(Optional.of(existingPoint));
+        given(pointRepository.save(any(UserPoint.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        // when
+        UserPoint result = pointService.use(userId, useAmount);
+
+        // then
+        assertThat(result.getPoint()).isEqualTo(600L); // 1000 - 400
+    }
+
+    @Test
+    @DisplayName("포인트 사용 실패 - 잔액보다 많은 금액 사용 시 예외 발생")
+    void use_fail_insufficient_balance() {
+        // given
+        Long userId = 1L;
+        long useAmount = 2000L;
+        UserPoint existingPoint = UserPoint.builder().userId(userId).point(1000L).build();
+
+        given(pointRepository.findByUserId(userId)).willReturn(Optional.of(existingPoint));
+
+        // when & then
+        assertThatThrownBy(() -> pointService.use(userId, useAmount))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("잔액이 부족합니다.");
+    }
 }

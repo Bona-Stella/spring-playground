@@ -32,4 +32,20 @@ public class PointService {
         // 4. 저장 및 반환
         return pointRepository.save(userPoint);
     }
+
+    @Transactional
+    public UserPoint use(Long userId, long amount) {
+        // 1. 유저 조회 (없으면 포인트 0원인 상태로 간주 -> 당연히 잔액 부족 뜸)
+        UserPoint userPoint = pointRepository.findByUserId(userId)
+                .orElse(UserPoint.builder()
+                        .userId(userId)
+                        .point(0L)
+                        .build());
+
+        // 2. 도메인 로직 실행 (잔액 부족 시 여기서 예외 발생)
+        userPoint.usePoint(amount);
+
+        // 3. 저장 및 반환
+        return pointRepository.save(userPoint);
+    }
 }
