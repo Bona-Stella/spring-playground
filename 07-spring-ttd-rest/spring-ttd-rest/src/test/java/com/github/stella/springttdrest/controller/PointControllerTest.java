@@ -2,6 +2,7 @@ package com.github.stella.springttdrest.controller;
 
 import com.github.stella.springttdrest.dto.PointChargeRequest;
 import com.github.stella.springttdrest.domain.UserPoint;
+import com.github.stella.springttdrest.dto.PointUseRequest;
 import com.github.stella.springttdrest.service.PointService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -50,5 +51,27 @@ class PointControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(userId))
                 .andExpect(jsonPath("$.point").value(amount));
+    }
+
+    @Test
+    @DisplayName("포인트 사용 API - 성공 시 잔액이 감소된 포인트 정보를 반환한다")
+    void use_api_success() throws Exception {
+        // given
+        long userId = 1L;
+        long amount = 1000L;
+        PointUseRequest request = new PointUseRequest(userId, amount);
+
+        // Service가 사용 후 남은 잔액(2000원)을 리턴한다고 가정
+        UserPoint responsePoint = UserPoint.builder().userId(userId).point(2000L).build();
+        given(pointService.use(userId, amount)).willReturn(responsePoint);
+
+        // when & then
+        mockMvc.perform(patch("/point/use")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(userId))
+                .andExpect(jsonPath("$.point").value(2000L));
     }
 }

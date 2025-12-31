@@ -1,6 +1,6 @@
 package com.github.stella.springttdrest.dto;
 
-public record PointChargeRequest(
+public record PointUseRequest(
         long userId,
         long amount
 ) {
