@@ -1,16 +1,18 @@
 package com.github.stella.springttdrest.service;
 
-import com.github.stella.springttdrest.domain.PointRepository;
-import com.github.stella.springttdrest.domain.UserPoint;
+import com.github.stella.springttdrest.domain.*; // 패키지 경로 확인
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
 public class PointService {
 
     private final PointRepository pointRepository;
+    private final PointHistoryRepository pointHistoryRepository; // ★ 추가됨
 
     @Transactional
     public UserPoint charge(Long userId, long amount) {
@@ -18,8 +20,6 @@ public class PointService {
             throw new IllegalArgumentException("충전 금액은 0보다 커야 합니다.");
         }
 
-        // ★ 수정: findByUserId -> findByUserIdWithLock
-        // 주의: 락은 데이터가 존재해야 걸립니다. 없으면 생성 로직으로 넘어갑니다.
         UserPoint userPoint = pointRepository.findByUserIdWithLock(userId)
                 .orElse(UserPoint.builder()
                         .userId(userId)
@@ -28,12 +28,19 @@ public class PointService {
 
         userPoint.addPoint(amount);
 
+        // ★ 히스토리 저장 로직 추가
+        pointHistoryRepository.save(PointHistory.builder()
+                .userId(userId)
+                .amount(amount)
+                .type(TransactionType.CHARGE)
+                .updateMillis(LocalDateTime.now()) // 시간 직접 기록
+                .build());
+
         return pointRepository.save(userPoint);
     }
 
     @Transactional
     public UserPoint use(Long userId, long amount) {
-        // ★ 수정: findByUserId -> findByUserIdWithLock
         UserPoint userPoint = pointRepository.findByUserIdWithLock(userId)
                 .orElse(UserPoint.builder()
                         .userId(userId)
@@ -41,6 +48,14 @@ public class PointService {
                         .build());
 
         userPoint.usePoint(amount);
+
+        // ★ 히스토리 저장 로직 추가
+        pointHistoryRepository.save(PointHistory.builder()
+                .userId(userId)
+                .amount(amount)
+                .type(TransactionType.USE)
+                .updateMillis(LocalDateTime.now())
+                .build());
 
         return pointRepository.save(userPoint);
     }
