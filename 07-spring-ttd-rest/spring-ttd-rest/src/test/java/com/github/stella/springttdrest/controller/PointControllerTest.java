@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -19,41 +20,45 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(PointController.class) // Controller만 떼어서 테스트
+@WebMvcTest(PointController.class)
 class PointControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockitoBean // Spring Context에 가짜 Bean 등록
+    @MockitoBean
     private PointService pointService;
 
     @Autowired
-    private ObjectMapper objectMapper; // 객체 -> JSON 변환용
+    private ObjectMapper objectMapper;
 
     @Test
     @DisplayName("포인트 충전 API - 성공 시 변경된 포인트 정보를 반환한다")
+    @WithMockUser(username = "1") // Security Context에 ID "1"인 유저가 로그인했다고 가정
     void charge_api_success() throws Exception {
         // given
-        long userId = 1L;
+        long userId = 1L; // @WithMockUser("1")과 일치해야 함
         long amount = 5000L;
-        PointChargeRequest request = new PointChargeRequest(userId, amount);
+        // DTO에는 이제 amount만 들어갑니다 (userId 제거됨)
+        PointChargeRequest request = new PointChargeRequest(amount);
 
-        // Service가 충전 후 5000원짜리 객체를 리턴한다고 가정 (Mocking)
+        // Service는 Controller가 Principal에서 꺼낸 ID(1L)로 호출됩니다.
         UserPoint responsePoint = UserPoint.builder().userId(userId).point(amount).build();
         given(pointService.charge(userId, amount)).willReturn(responsePoint);
 
         // when & then
         mockMvc.perform(patch("/point/charge")
+                        .with(csrf()) // POST, PATCH 요청 필수
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request))) // 객체를 JSON 문자열로 변환
-                .andDo(print()) // 로그 출력
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(userId))
                 .andExpect(jsonPath("$.point").value(amount));
@@ -61,18 +66,20 @@ class PointControllerTest {
 
     @Test
     @DisplayName("포인트 사용 API - 성공 시 잔액이 감소된 포인트 정보를 반환한다")
+    @WithMockUser(username = "1") // "tester" -> "1"로 수정 (Long 파싱 위해)
     void use_api_success() throws Exception {
         // given
         long userId = 1L;
         long amount = 1000L;
-        PointUseRequest request = new PointUseRequest(userId, amount);
+        // DTO에는 amount만 들어갑니다
+        PointUseRequest request = new PointUseRequest(amount);
 
-        // Service가 사용 후 남은 잔액(2000원)을 리턴한다고 가정
         UserPoint responsePoint = UserPoint.builder().userId(userId).point(2000L).build();
         given(pointService.use(userId, amount)).willReturn(responsePoint);
 
         // when & then
         mockMvc.perform(patch("/point/use")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -82,7 +89,8 @@ class PointControllerTest {
     }
 
     @Test
-    @DisplayName("포인트 내역 조회 API - 유저의 내역 리스트를 반환한다")
+    @DisplayName("포인트 내역 조회 API - 로그인한 유저의 내역 리스트를 반환한다")
+    @WithMockUser(username = "1") // "tester" -> "1"로 수정
     void history_api_success() throws Exception {
         // given
         long userId = 1L;
@@ -91,14 +99,14 @@ class PointControllerTest {
                 PointHistory.builder().userId(userId).amount(500L).type(TransactionType.USE).build()
         );
 
-        // Service Mocking
         given(pointService.getHistory(userId)).willReturn(historyList);
 
         // when & then
-        mockMvc.perform(get("/point/{id}/histories", userId)) // URL PathVariable 사용
+        // URL 수정: /point/{id}/histories -> /point/histories (내 정보 조회)
+        mockMvc.perform(get("/point/histories"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2))) // 배열 크기가 2개인지
+                .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].amount").value(1000L))
                 .andExpect(jsonPath("$[0].type").value("CHARGE"))
                 .andExpect(jsonPath("$[1].amount").value(500L))
@@ -107,24 +115,26 @@ class PointControllerTest {
 
     @Test
     @DisplayName("포인트 충전 실패 - 잘못된 금액 입력 시 에러 응답 포맷을 검증한다")
+    @WithMockUser(username = "1") // "tester" -> "1"로 수정
     void charge_api_fail_invalid_amount() throws Exception {
         // given
         long userId = 1L;
         long invalidAmount = -500L;
-        PointChargeRequest request = new PointChargeRequest(userId, invalidAmount);
+        // DTO 수정
+        PointChargeRequest request = new PointChargeRequest(invalidAmount);
 
-        // Service에서 예외를 던진다고 가정
-        // (willThrow는 void 메서드용이고, 리턴이 있는 메서드는 given(...).willThrow(...) 사용)
+        // Service에서 예외 발생 가정
         given(pointService.charge(userId, invalidAmount))
                 .willThrow(new IllegalArgumentException("충전 금액은 0보다 커야 합니다."));
 
         // when & then
         mockMvc.perform(patch("/point/charge")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
-                .andExpect(status().isBadRequest()) // 400 Bad Request 기대
-                .andExpect(jsonPath("$.code").value("BAD_REQUEST")) // 커스텀 코드
-                .andExpect(jsonPath("$.message").value("충전 금액은 0보다 커야 합니다.")); // 메시지
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("충전 금액은 0보다 커야 합니다."));
     }
 }
