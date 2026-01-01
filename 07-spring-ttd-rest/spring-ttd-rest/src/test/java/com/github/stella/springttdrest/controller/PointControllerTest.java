@@ -1,19 +1,25 @@
 package com.github.stella.springttdrest.controller;
 
-import com.github.stella.springttdrest.dto.PointChargeRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.stella.springttdrest.domain.PointHistory;
+import com.github.stella.springttdrest.domain.TransactionType;
 import com.github.stella.springttdrest.domain.UserPoint;
+import com.github.stella.springttdrest.dto.PointChargeRequest;
 import com.github.stella.springttdrest.dto.PointUseRequest;
 import com.github.stella.springttdrest.service.PointService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -73,5 +79,29 @@ class PointControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(userId))
                 .andExpect(jsonPath("$.point").value(2000L));
+    }
+
+    @Test
+    @DisplayName("포인트 내역 조회 API - 유저의 내역 리스트를 반환한다")
+    void history_api_success() throws Exception {
+        // given
+        long userId = 1L;
+        List<PointHistory> historyList = List.of(
+                PointHistory.builder().userId(userId).amount(1000L).type(TransactionType.CHARGE).build(),
+                PointHistory.builder().userId(userId).amount(500L).type(TransactionType.USE).build()
+        );
+
+        // Service Mocking
+        given(pointService.getHistory(userId)).willReturn(historyList);
+
+        // when & then
+        mockMvc.perform(get("/point/{id}/histories", userId)) // URL PathVariable 사용
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2))) // 배열 크기가 2개인지
+                .andExpect(jsonPath("$[0].amount").value(1000L))
+                .andExpect(jsonPath("$[0].type").value("CHARGE"))
+                .andExpect(jsonPath("$[1].amount").value(500L))
+                .andExpect(jsonPath("$[1].type").value("USE"));
     }
 }

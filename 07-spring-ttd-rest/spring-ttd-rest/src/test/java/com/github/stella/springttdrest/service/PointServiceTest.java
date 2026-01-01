@@ -1,15 +1,14 @@
 package com.github.stella.springttdrest.service;
 
-import com.github.stella.springttdrest.domain.PointHistory;
-import com.github.stella.springttdrest.domain.PointHistoryRepository;
-import com.github.stella.springttdrest.domain.PointRepository;
-import com.github.stella.springttdrest.domain.UserPoint;
+import com.github.stella.springttdrest.domain.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.Mockito.*;
@@ -107,5 +106,29 @@ class PointServiceTest {
                 .hasMessage("잔액이 부족합니다.");
     }
 
+    @Test
+    @DisplayName("포인트 내역 조회 - 유저의 내역 리스트를 반환해야 한다")
+    void getHistory_success() {
+        // given
+        Long userId = 1L;
+        // 가짜 데이터 2개 생성
+        List<PointHistory> historyList = List.of(
+                PointHistory.builder().userId(userId).amount(1000L).type(TransactionType.CHARGE).build(),
+                PointHistory.builder().userId(userId).amount(500L).type(TransactionType.USE).build()
+        );
+
+        // Repository가 이 리스트를 반환한다고 가정
+        given(pointHistoryRepository.findAllByUserIdOrderByUpdateMillisDesc(userId))
+                .willReturn(historyList);
+
+        // when
+        // ★ 아직 getHistory 메서드가 없어서 컴파일 에러 발생 (RED)
+        List<PointHistory> result = pointService.getHistory(userId);
+
+        // then
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getAmount()).isEqualTo(1000L);
+        assertThat(result.get(1).getType()).isEqualTo(TransactionType.USE);
+    }
 
 }

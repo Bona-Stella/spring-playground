@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -58,5 +59,11 @@ public class PointService {
                 .build());
 
         return pointRepository.save(userPoint);
+    }
+
+    // 포인트 내역 조회
+    @Transactional(readOnly = true) // 조회 전용이므로 성능 최적화
+    public List<PointHistory> getHistory(Long userId) {
+        return pointHistoryRepository.findAllByUserIdOrderByUpdateMillisDesc(userId);
     }
 }
