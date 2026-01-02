@@ -1,16 +1,19 @@
 package com.github.stella.springttdrest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.stella.springttdrest.config.SecurityConfig;
 import com.github.stella.springttdrest.domain.PointHistory;
 import com.github.stella.springttdrest.domain.TransactionType;
 import com.github.stella.springttdrest.domain.UserPoint;
 import com.github.stella.springttdrest.dto.PointChargeRequest;
 import com.github.stella.springttdrest.dto.PointUseRequest;
+import com.github.stella.springttdrest.security.JwtTokenProvider;
 import com.github.stella.springttdrest.service.PointService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -28,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(PointController.class)
+@Import(SecurityConfig.class) // ★ 1. 보안 설정 불러오기 (CSRF 비활성화 적용됨)
 class PointControllerTest {
 
     @Autowired
@@ -38,6 +42,9 @@ class PointControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
 
     @Test
     @DisplayName("포인트 충전 API - 성공 시 변경된 포인트 정보를 반환한다")
