@@ -55,7 +55,7 @@ class PointControllerTest {
 
         // when & then
         mockMvc.perform(patch("/point/charge")
-                        .with(csrf()) // POST, PATCH 요청 필수
+//                        .with(csrf()) // POST, PATCH 요청 필수
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -79,7 +79,7 @@ class PointControllerTest {
 
         // when & then
         mockMvc.perform(patch("/point/use")
-                        .with(csrf())
+//                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -129,7 +129,7 @@ class PointControllerTest {
 
         // when & then
         mockMvc.perform(patch("/point/charge")
-                        .with(csrf())
+//                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
