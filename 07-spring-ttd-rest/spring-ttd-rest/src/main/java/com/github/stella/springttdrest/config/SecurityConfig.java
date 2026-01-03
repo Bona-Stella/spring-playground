@@ -30,7 +30,10 @@ public class SecurityConfig {
 
                 // 3. URL 관리
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll() // 로그인, 회원가입은 누구나 접근 가능
+                        .requestMatchers("/auth/**",
+                                "/swagger-ui/**", // Swagger UI 페이지
+                                "/v3/api-docs/**" // Swagger API JSON 데이터
+                        ).permitAll() // 로그인, 회원가입은 누구나 접근 가능
                         .anyRequest().authenticated()            // 나머지는 인증 필요
                 )
 
