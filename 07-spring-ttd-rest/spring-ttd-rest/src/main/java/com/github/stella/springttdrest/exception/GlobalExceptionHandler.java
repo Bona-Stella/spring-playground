@@ -4,6 +4,7 @@ import com.github.stella.springttdrest.dto.ErrorResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 @RestControllerAdvice // 모든 컨트롤러의 예외를 감시합니다.
 public class GlobalExceptionHandler {
@@ -17,5 +18,16 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.badRequest() // 400 Status Code
                 .body(response);
+    }
+
+    // @Valid 검증 실패 시 발생하는 예외 처리
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException e) {
+        // 첫 번째 에러 메시지만 가져옴 (실무에선 리스트로 다 내려주기도 함)
+        String errorMessage = e.getBindingResult().getFieldError().getDefaultMessage();
+
+        ErrorResponse response = new ErrorResponse("INVALID_INPUT", errorMessage);
+
+        return ResponseEntity.badRequest().body(response);
     }
 }

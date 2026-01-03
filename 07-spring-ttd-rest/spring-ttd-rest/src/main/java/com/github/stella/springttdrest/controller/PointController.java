@@ -7,6 +7,7 @@ import com.github.stella.springttdrest.dto.PointUseRequest;
 import com.github.stella.springttdrest.service.PointService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.security.Principal;
 import java.util.List;
@@ -19,13 +20,13 @@ public class PointController {
     private final PointService pointService;
 
     @PatchMapping("/charge")
-    public UserPoint charge(Principal principal, @RequestBody PointChargeRequest request) {
+    public UserPoint charge(Principal principal, @RequestBody @Valid PointChargeRequest request) {
         long userId = Long.parseLong(principal.getName()); // "1" -> 1L 변환
         return pointService.charge(userId, request.amount());
     }
 
     @PatchMapping("/use")
-    public UserPoint use(Principal principal, @RequestBody PointUseRequest request) {
+    public UserPoint use(Principal principal, @RequestBody @Valid PointUseRequest request) {
         long userId = Long.parseLong(principal.getName());
         return pointService.use(userId, request.amount());
     }

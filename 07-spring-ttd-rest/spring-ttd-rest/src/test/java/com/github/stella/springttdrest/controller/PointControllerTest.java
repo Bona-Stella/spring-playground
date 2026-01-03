@@ -23,7 +23,6 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -122,26 +121,22 @@ class PointControllerTest {
 
     @Test
     @DisplayName("포인트 충전 실패 - 잘못된 금액 입력 시 에러 응답 포맷을 검증한다")
-    @WithMockUser(username = "1") // "tester" -> "1"로 수정
+    @WithMockUser(username = "1")
     void charge_api_fail_invalid_amount() throws Exception {
         // given
-        long userId = 1L;
-        long invalidAmount = -500L;
-        // DTO 수정
-        PointChargeRequest request = new PointChargeRequest(invalidAmount);
+        // Validation이 동작하려면 Long amount = -500L;
+        PointChargeRequest request = new PointChargeRequest(-500L);
 
-        // Service에서 예외 발생 가정
-        given(pointService.charge(userId, invalidAmount))
-                .willThrow(new IllegalArgumentException("충전 금액은 0보다 커야 합니다."));
+        // ★ 삭제됨: given(pointService.charge(...)).willThrow(...)
+        // 이유: @Valid가 Controller 진입 전에 막아버리므로 Service는 호출조차 안 됩니다.
 
         // when & then
         mockMvc.perform(patch("/point/charge")
-//                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
-                .andExpect(jsonPath("$.message").value("충전 금액은 0보다 커야 합니다."));
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT")) // 코드가 바뀌었음
+                .andExpect(jsonPath("$.message").value("금액은 0보다 커야 합니다."));
     }
 }

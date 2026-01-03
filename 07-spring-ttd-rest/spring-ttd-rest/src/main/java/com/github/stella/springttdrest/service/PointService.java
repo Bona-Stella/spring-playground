@@ -17,10 +17,6 @@ public class PointService {
 
     @Transactional
     public UserPoint charge(Long userId, long amount) {
-        if (amount <= 0) {
-            throw new IllegalArgumentException("충전 금액은 0보다 커야 합니다.");
-        }
-
         UserPoint userPoint = pointRepository.findByUserIdWithLock(userId)
                 .orElse(UserPoint.builder()
                         .userId(userId)
